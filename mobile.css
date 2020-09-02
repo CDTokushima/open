@@ -78,10 +78,6 @@ summary {
   cursor: pointer;
   transition: 0.2s;
 }
-/* Chrome、Safari */
-summary::-webkit-details-marker {
-  display: none;
-}
 /* Hovering Style */
 summary:hover {
   cursor: pointer;

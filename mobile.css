@@ -72,3 +72,19 @@ body {
   background-color: #2877C7;
   text-align: center;
 }
+
+/* Except for Chrome、Safari */
+summary {
+  cursor: pointer;
+  transition: 0.2s;
+}
+/* Chrome、Safari */
+summary::-webkit-details-marker {
+  display: none;
+}
+/* Hovering Style */
+summary:hover {
+  cursor: pointer;
+  background-color: #EFEFEF;
+}
+

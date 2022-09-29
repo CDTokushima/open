@@ -22,11 +22,11 @@
     body {
       margin: 0;
       font-family: "Helvetica Neue",
-							    Arial,
-							    "Hiragino Kaku Gothic ProN",
-							    "Hiragino Sans",
-							    Meiryo,
-							    sans-serif;
+	    Arial,
+	    "Hiragino Kaku Gothic ProN",
+	    "Hiragino Sans",
+	    Meiryo,
+	    sans-serif;
       font-size: 0.75rem;
       font-weight: 400;
       line-height: 1.5;
@@ -40,7 +40,7 @@
       text-align: center;
     }
   </style>
-  <link rel="stylesheet" href="/chatbot/chatbot.css">
+  <link rel="stylesheet" href="./chatbot/chatbot.css">
 </head>
 
 <body>
@@ -58,18 +58,18 @@
 
 
   <!-- FingerPrint JS -->
-  <script src="/chatbot/fp2.js"></script>
+  <script src="./chatbot/fp2.js"></script>
   <!-- ChatBot JS -->
-  <script src="/chatbot/chatbot.js"></script>
+  <script src="./chatbot/chatbot.js"></script>
 
   <script>
-    // 1 - Указание ключа в localstorage, в котором будет храниться отпечаток браузера
+    // 1 - Specifying the key in localstorage where the browser fingerprint will be stored
     const keyLS = 'fingerprint';
-    // 2 - Указание CSS селектора кнопки, с помощью которой будем вызывать окно диалога с чат-ботом
+    // 2 - Specifying the CSS selector for the button that will be used to call the dialog window with the chatbot
     const chatbotBtnSel = '.chatbot-btn';
-    // 3 - URL к chatbot.php
+    // 3 - URL to index.html
     const url = 'index.html';
-    // 4 - Описание данных, определяющие сценарий диалога для чат-бота
+    // 4 - Data description that defines the dialog script for the chatbot
     const data = {
       bot: {
         0: {
@@ -99,7 +99,7 @@
         10: { content: '', bot: 9, name: 'contact' },
       }
     }
-    // добавление хэша fingerprint в localstorage
+    // adding a fingerprint hash to localstorage
 		/*
     let fingerprint = localStorage.getItem(keyLS);
     if (!fingerprint) {
@@ -108,7 +108,7 @@
         localStorage.setItem(keyLS, fingerprint)
       });
     }*/
-    // инициализация ChatBotByItchief посредством вызова следующей функции с передачи ей нужных параметров
+    // Initializing ChatBotByItchief by calling the following function and passing the required parameters to it
     chatBotByItchiefInit({
       chatbotBtnSel: chatbotBtnSel,
       data: data,

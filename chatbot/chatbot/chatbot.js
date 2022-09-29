@@ -231,20 +231,20 @@ class ChatBotByItchief {
     this.#start = false;
 
     // Send the data to the server
-    var request = new XMLHttpRequest();
-    request.onreadystatechange = function () {
-      if (request.readyState === 0 || request.readyState === 4) {
-        if (request.status == 200) {
-          //console.log(JSON.parse(request.responseText));
-        } else {
-          //console.log('error');
-        }
-      }
-    };
-    request.open('POST', url);
-    request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    request.setRequestHeader('Content-Type', 'application/json');
-    request.send(dataSend);
+    //var request = new XMLHttpRequest();
+    //request.onreadystatechange = function () {
+    //  if (request.readyState === 0 || request.readyState === 4) {
+    //    if (request.status == 200) {
+    //      //console.log(JSON.parse(request.responseText));
+    //    } else {
+    //      //console.log('error');
+    //    }
+    //  }
+    //};
+    //request.open('POST', url);
+    //request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    //request.setRequestHeader('Content-Type', 'application/json');
+    //request.send(dataSend);
   }
 
   // function to handle the change event

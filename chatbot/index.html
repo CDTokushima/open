@@ -84,11 +84,12 @@
         7: { content: '{{name}}, お電話番号を教えてください。', human: [10] },
         8: { content: '{{name}}, Eメールアドレスを教えてください。', human: [10] },
         9: { content: 'OK! {{name}}, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
+        10: { content: 'ありがとう！あなたのお名前は？', human: [3] },
       },
       human: {
         0: { content: '開講時期を知りたい。', bot: 1 },
         1: { content: '特にないです。', bot: 2 },
-        2: { content: 'とくぽんかわいいね！', bot: 2 },
+        2: { content: 'とくぽんかわいいね！', bot: 10 },
         3: { content: '', bot: 3, name: 'name' },
         4: { content: 'とくぽんAI塾に興味があります。', bot: 4 },
         5: { content: 'とくぽんAI塾について聞きたいことがあります。', bot: 5 },

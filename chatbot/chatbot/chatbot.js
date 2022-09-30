@@ -13,7 +13,7 @@ class ChatBotByItchief {
   #delay = 500;
   #botId = 0;
   #contentIndex = 1;
-  #start = true;
+  //#start = true;
   #fields = {};
 
   // common pattern
@@ -196,7 +196,7 @@ class ChatBotByItchief {
       content: humanContent,
     };
     this.#contentIndex++;
-
+		/*
     const fromStorage = localStorage.getItem('chatbot');
     let dataToStorage = [];
     let fieldsToStorage = {};
@@ -228,23 +228,26 @@ class ChatBotByItchief {
       date: getDateTime(),
     });
 
-    this.#start = false;
 
+    this.#start = false;
+		*/
     // Send the data to the server
-    //var request = new XMLHttpRequest();
-    //request.onreadystatechange = function () {
-    //  if (request.readyState === 0 || request.readyState === 4) {
-    //    if (request.status == 200) {
-    //      //console.log(JSON.parse(request.responseText));
-    //    } else {
-    //      //console.log('error');
-    //    }
-    //  }
-    //};
-    //request.open('POST', url);
-    //request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    //request.setRequestHeader('Content-Type', 'application/json');
-    //request.send(dataSend);
+		/*
+    var request = new XMLHttpRequest();
+    request.onreadystatechange = function () {
+      if (request.readyState === 0 || request.readyState === 4) {
+        if (request.status == 200) {
+          //console.log(JSON.parse(request.responseText));
+        } else {
+          //console.log('error');
+        }
+      }
+    };
+    request.open('POST', url);
+    request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    request.setRequestHeader('Content-Type', 'application/json');
+    /request.send(dataSend);
+		*/
   }
 
   // function to handle the change event

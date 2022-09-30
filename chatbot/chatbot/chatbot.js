@@ -13,7 +13,7 @@ class ChatBotByItchief {
   #delay = 500;
   #botId = 0;
   #contentIndex = 1;
-  //#start = true;
+  #start = true;
   #fields = {};
 
   // common pattern
@@ -219,20 +219,22 @@ class ChatBotByItchief {
       fields: fieldsToStorage,
     });
     localStorage.setItem('chatbot', dataToStorageJSON);
-
+		*/
     // shipping details
-    const dataSend = JSON.stringify({
-      id: localStorage.getItem(this.#keyLS),
-      chat: data,
-      start: this.#start,
-      date: getDateTime(),
-    });
+    const dataSend = JSON.stringify(//{
+      //id: localStorage.getItem(this.#keyLS),
+      //chat: data,
+      //start: this.#start,
+      //date: getDateTime(),
+    //}
+			{"text": "Hello World"}
+		);
 
 
     this.#start = false;
-		*/
+
     // Send the data to the server
-		/*
+
     var request = new XMLHttpRequest();
     request.onreadystatechange = function () {
       if (request.readyState === 0 || request.readyState === 4) {
@@ -246,8 +248,8 @@ class ChatBotByItchief {
     request.open('POST', url);
     request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     request.setRequestHeader('Content-Type', 'application/json');
-    /request.send(dataSend);
-		*/
+    request.send(dataSend);
+
   }
 
   // function to handle the change event

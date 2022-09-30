@@ -160,6 +160,7 @@ class ChatBotByItchief {
       }
       this.#botId = +$target.closest('.chatbot__submit').dataset.botId;
       humanContent = this.#$element.querySelector('.chatbot__input').value;
+			input(humanContent);
       humanField = this.#$element.querySelector('.chatbot__input').dataset.name;
       if (humanField) {
         this.#fields[humanField] = humanContent;

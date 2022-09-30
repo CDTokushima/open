@@ -128,6 +128,62 @@
 
   </script>
 
+	<input id="sentence" maxlength="100" oninput="inputted();" size="30" type="text" />
+	<div id="output">&nbsp;</div>
+
+	<script src="./chatbot/kuromoji.js"></script><script>
+	let timer = null;
+
+	const builder = kuromoji.builder({ dicPath: "/" })
+
+	const buildFunction = (string) => {
+	  return (err, tokenizer) => {
+	    console.log('string',string);
+	    let path = tokenizer.tokenize(string);
+	    console.log('path',path);
+	    const target = document.getElementById("output");
+			output = '';
+			for (const element of path) {
+			  output += element.surface_form + ' ' + element.pos + '<br>';
+			}
+	    target.innerHTML = output;
+			humanContent = output;
+	  }
+	};
+	const analyze = function() {
+		const target = document.getElementById("sentence");
+		let result = builder.build(buildFunction(target.value));
+	};
+	const inputted = function() {
+		if (timer != null) {
+			clearTimeout(timer);
+			timer = null;
+		}
+		timer = setTimeout(analyze, 1000);
+	};
+	const input = function(message) {
+		let result = builder.build(buildFunction(message));
+	}
+	</script>
+<table hidden="">
+	<tbody>
+		<tr>
+			<td><a class="icon-gz" href="./chatbot/unk.dat.gz">unk.dat.gz (GZ 10.3KB)</a>
+				<a class="icon-gz" href="./chatbot/unk_invoke.dat.gz">unk_invoke.dat.gz (GZ 1.11KB)</a>
+				<a class="icon-gz" href="./chatbot/unk_compat.dat.gz">unk_compat.dat.gz (GZ 338バイト)</a>
+				<a class="icon-gz" href="./chatbot/unk_pos.dat.gz">unk_pos.dat.gz (GZ 10.3KB)</a>
+				<a class="icon-gz" href="./chatbot/unk_map.dat.gz">unk_map.dat.gz (GZ 1.16KB)</a>
+				<a class="icon-gz" href="./chatbot/unk_char.dat.gz">unk_char.dat.gz (GZ 306バイト)</a>
+				<a class="icon-gz" href="./chatbot/tid.dat.gz">tid.dat.gz (GZ 1.53MB)</a>
+				<a class="icon-gz" href="./chatbot/tid_pos.dat.gz">tid_pos.dat.gz (GZ 5.64MB)</a>
+				<a class="icon-gz" href="./chatbot/tid_map.dat.gz">tid_map.dat.gz (GZ 1.42MB)</a>
+				<a class="icon-gz" href="./chatbot/check.dat.gz">check.dat.gz (GZ 2.97MB)</a>
+				<a class="icon-gz" href="./chatbot/cc.dat.gz">cc.dat.gz (GZ 1.61MB)</a>
+				<a class="icon-js" href="./chatbot/kuromoji.js">kuromoji.js (JS 301KB)</a></td>
+		</tr>
+	</tbody>
+</table>
+
 </body>
 
 </html>

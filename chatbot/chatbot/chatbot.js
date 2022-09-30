@@ -220,6 +220,7 @@ class ChatBotByItchief {
     });
     localStorage.setItem('chatbot', dataToStorageJSON);
 		*/
+		/*
     // shipping details
     const dataSend = JSON.stringify(//{
       //id: localStorage.getItem(this.#keyLS),
@@ -251,7 +252,7 @@ class ChatBotByItchief {
     request.send(dataSend);
 
   }
-
+	*/
   // function to handle the change event
   #eventHandlerKeydown(e) {
     const $target = e.target;

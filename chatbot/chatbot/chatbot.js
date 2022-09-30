@@ -250,9 +250,9 @@ class ChatBotByItchief {
     request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     request.setRequestHeader('Content-Type', 'application/json');
     request.send(dataSend);
-
+		*/
   }
-	*/
+
   // function to handle the change event
   #eventHandlerKeydown(e) {
     const $target = e.target;

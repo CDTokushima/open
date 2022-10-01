@@ -76,15 +76,15 @@
         0: {
           content: 'こんにちは！とくぽんAI塾です。何かご質問はありますか？', human: [0, 1, 2]
         },
-        1: { content: 'よかった！あなたのお名前は？', human: [3] },
+        1: { content: 'なるほど。あなたのお名前は？', human: [3] },
         2: { content: 'あなたのお名前は？', human: [3] },
-        3: { content: '{{name}}, 興味のあることは何ですか？', human: [4, 5] },
-        4: { content: '{{name}}, こちらにアクセスしてください。 <a href="https://www.tokushima-u.ac.jp/ai/tokupon/" target="_blank">とくぽんAI塾</a>. こちらに詳しい情報があります。', human: [6] },
-        5: { content: "{{name}}, ご質問はなんですか？", human: [7] },
-        6: { content: '{{name}}, ご質問を受け付けました。後ほど連絡しますので、連絡先を教えてください。', human: [8, 9] },
-        7: { content: '{{name}}, お電話番号を教えてください。', human: [10] },
-        8: { content: '{{name}}, Eメールアドレスを教えてください。', human: [10] },
-        9: { content: 'OK! {{name}}, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
+        3: { content: '{{name}}さん, 興味のあることは何ですか？', human: [4, 5] },
+        4: { content: '{{name}}さん, こちらにアクセスしてください。 <a href="https://www.tokushima-u.ac.jp/ai/tokupon/" target="_blank">とくぽんAI塾</a>. こちらに詳しい情報があります。', human: [6] },
+        5: { content: "{{name}}さん, ご質問はなんですか？", human: [7] },
+        6: { content: '{{name}}さん, ご質問を受け付けました。後ほど連絡しますので、連絡先を教えてください。', human: [8, 9] },
+        7: { content: '{{name}}さん, お電話番号を教えてください。', human: [10] },
+        8: { content: '{{name}}さん, Eメールアドレスを教えてください。', human: [10] },
+        9: { content: 'OK! {{name}}さん, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
         10: { content: 'ありがとう！あなたのお名前は？', human: [3] },
       },
       human: {
@@ -134,25 +134,40 @@
 	<script src="./chatbot/kuromoji.js"></script><script>
 	let timer = null;
 
-	const builder = kuromoji.builder({ dicPath: "/open/chatbot/chatbot" })
+	const builder = kuromoji.builder({ dicPath: "/chatbot" })
 
 	const buildFunction = (string) => {
 	  return (err, tokenizer) => {
-	    console.log('string',string);
-	    let path = tokenizer.tokenize(string);
-	    console.log('path',path);
-	    const target = document.getElementById("output");
-			output = '';
-			for (const element of path) {
-			  output += element.surface_form + ' ' + element.pos + '<br>';
-			}
-	    target.innerHTML = output;
-			humanContent = output;
+			tokenizer_ = tokenizer;
+	    //console.log('string',string);
+	    //let path = tokenizer.tokenize(string);
+	    //console.log('path',path);
+	    //const target = document.getElementById("output");
+			//output = '';
+			//for (const element of path) {
+			//  output += element.surface_form + ' ' + element.pos + '<br>';
+			//}
+	    //target.innerHTML = output;
+			//humanContent = output;
 	  }
 	};
+
+	let tokenizer_ = undefined;
+	if (!tokenizer_) {
+		builder.build(buildFunction(''));
+	}
+
 	const analyze = function() {
 		const target = document.getElementById("sentence");
-		let result = builder.build(buildFunction(target.value));
+//		let result = builder.build(buildFunction(target.value));
+    let path = tokenizer_.tokenize(target.value);
+    console.log('path',path);
+    const outtarget = document.getElementById("output");
+		output = '';
+		for (const element of path) {
+		  output += element.surface_form + ' ' + element.pos + '<br>';
+		}
+    outtarget.innerHTML = output;
 	};
 	const inputted = function() {
 		if (timer != null) {
@@ -162,7 +177,31 @@
 		timer = setTimeout(analyze, 1000);
 	};
 	const input = function(message) {
-		let result = builder.build(buildFunction(message));
+		//builder.build(buildFunction(message));
+    let path = tokenizer_.tokenize(message);
+    console.log('path',path);
+    const outtarget = document.getElementById("output");
+		output = [];
+		for (const element of path) {
+		  //output += element.surface_form + ' ' + element.pos + '<br>';
+			output.push([element.surface_form, element.pos]);
+		}
+		// 敬称チェック
+		switch (output[output.length-1][0]) {
+			case 'くん':	case '君':	case 'さん':	case '様':
+			case 'さま':	case 'ちゃん':	case '社長':	case '部長':
+			case '課長':	case '係長':	case '委員長':	case '組長':
+				output.pop();
+			break;
+		}
+		content = '';
+		response = '';
+		for (const word of output) {
+		  response += word[0] + ' ' + word[1] + '<br>';
+			content += word[0];
+		}
+    outtarget.innerHTML = response;
+		return content;
 	}
 	</script>
 <table hidden="">

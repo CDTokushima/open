@@ -214,15 +214,22 @@ A: 必要に応じて貸し出しを行います。<a class="icon-pdf" href="/fs
 
 	const analyze = function() {
 		const target = document.getElementById("sentence");
-//		let result = builder.build(buildFunction(target.value));
-    let path = tokenizer_.tokenize(target.value);
-    console.log('path',path);
-    const outtarget = document.getElementById("output");
-		output = '';
-		for (const element of path) {
-		  output += element.surface_form + ' ' + element.pos + '<br>';
+		if (target) {
+			val = target.value;
 		}
-    outtarget.innerHTML = output;
+		if (typeof val === 'string' && val.length > 0) {
+//		let result = builder.build(buildFunction(target.value));
+			if (tokenizer_) {
+		    let path = tokenizer_.tokenize(target.value);
+		    console.log('path',path);
+		    const outtarget = document.getElementById("output");
+				output = '';
+				for (const element of path) {
+				  output += element.surface_form + ' ' + element.pos + '<br>';
+				}
+		    outtarget.innerHTML = output;
+			}
+		}
 	};
 	const inputted = function() {
 		if (timer != null) {
@@ -232,47 +239,51 @@ A: 必要に応じて貸し出しを行います。<a class="icon-pdf" href="/fs
 		timer = setTimeout(analyze, 1000);
 	};
 	const input = function(type, message) {
-    let path = tokenizer_.tokenize(message);
-    const outtarget = document.getElementById("output");
-		let output = [];
-		for (const element of path) {
-		  //output += element.surface_form + ' ' + element.pos + '<br>';
-			output.push([element.surface_form, element.pos]);
-		}
-		let content = '';
-		let response = '';
-		//builder.build(buildFunction(message));
-		switch (type) {
-			case 'name':
-				// 敬称チェック
-				switch (output[output.length-1][0]) {
-					case 'くん':	case '君':	case 'さん':	case '様':
-					case 'さま':	case 'ちゃん':	case '社長':	case '部長':
-					case '課長':	case '係長':	case '委員長':	case '組長':
-						output.pop();
+		if (typeof message === 'string' && message.length > 0) {
+			if (tokenizer_) {
+		    let path = tokenizer_.tokenize(message);
+		    const outtarget = document.getElementById("output");
+				let output = [];
+				for (const element of path) {
+				  //output += element.surface_form + ' ' + element.pos + '<br>';
+					output.push([element.surface_form, element.pos]);
+				}
+				let content = '';
+				let response = '';
+				//builder.build(buildFunction(message));
+				switch (type) {
+					case 'name':
+						// 敬称チェック
+						switch (output[output.length-1][0]) {
+							case 'くん':	case '君':	case 'さん':	case '様':
+							case 'さま':	case 'ちゃん':	case '社長':	case '部長':
+							case '課長':	case '係長':	case '委員長':	case '組長':
+								output.pop();
+							break;
+						}
+						for (const word of output) {
+						  response += word[0] + ' ' + word[1] + '<br>';
+							content += word[0];
+						}
+				    outtarget.innerHTML = response;
+						return [content, ""];
+					break;
+					case '':
+						// 質問チェック
+						for (const word of output) {
+						  response += word[0] + ' ' + word[1] + '<br>';
+							if (word[0] === '内容') {
+								content = "応答内容をここに入れる";
+							}
+						}
+				    outtarget.innerHTML = response;
+						return [message, content];
+					break;
+					default:
+					return [message, ""];
 					break;
 				}
-				for (const word of output) {
-				  response += word[0] + ' ' + word[1] + '<br>';
-					content += word[0];
-				}
-		    outtarget.innerHTML = response;
-				return [content, ""];
-			break;
-			case '':
-				// 質問チェック
-				for (const word of output) {
-				  response += word[0] + ' ' + word[1] + '<br>';
-					if (word[0] === '内容') {
-						content = "応答内容をここに入れる";
-					}
-				}
-		    outtarget.innerHTML = response;
-				return [message, content];
-			break;
-			default:
-			return [message, ""];
-			break;
+			}
 		}
 	}
 	</script>

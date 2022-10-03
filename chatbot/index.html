@@ -48,6 +48,59 @@
 
   <h1>Simple Chatbot</h1>
 
+<p style="vertical-align:top;"><font class="q">Q: 兄弟で参加できますか？</font><br />
+<font class="a">A: 参加資格があれば可能です。</font><br />
+<br />
+<font class="q">Q: 申込締め切りはいつですか？</font><br />
+<font class="a">A: 2月10日（木）を予定しています</font>。<br />
+<br />
+<font class="q">Q: 対象年齢は？</font><br />
+<font class="a">A: 小学生〜高校生が対象です。（コースによって参加資格が異なります）</font><br />
+<br />
+<font class="q">Q: 講座の内容は？</font><br />
+<font class="a">A: 課題解決ワークショップ、プログラミング、マインクラフト、ホームページ作り、データ分析、AIプログラミングなどを企画中です。</font><br />
+<br />
+Q: オンラインのみですか？<br />
+A: オンラインと大学での対面を併用します。<br />
+<br />
+Q: プログラミング言語はなんですか？<br />
+A: ビスケット、Scratch、マインクラフト(Make Code）、HTML、JavaScript、R言語、Python、等を予定しています。<br />
+<br />
+Q: 小学1年生でも参加できますか？<br />
+A: 小学3年生以下の場合は保護者等の補助をお願いすることがあります。<br />
+<br />
+Q: 抽選ですか？先着順ですか？<br />
+A: 抽選の予定です。選に漏れた場合も、個別のイベントの案内はする予定です。<br />
+<br />
+Q: 保護者にパソコンの知識がないが大丈夫ですか？<br />
+A: 自宅でのオンライン受講の場合にパソコン操作が必要になりますが、困難な場合は会場での参加をご検討いただきます。<br />
+<br />
+Q: 基礎知識がなくても大丈夫ですか？<br />
+A: 基礎知識がなくても参加できるようコース設計に努めます。<br />
+<br />
+Q: 参加費は無料ですか？<br />
+A: 原則、参加費は無料とします。コースやイベントによっては材料費等をお支払いいただく可能性がございますので、事前にご連絡いたします。<br />
+<br />
+Q: 土曜に参加できない場合は？<br />
+A: 土曜以外に開催する場合やオンデマンドで参加してもらうことも予定しています。この場合、個別に作品や取り組み状況の提出をお願いすることがあります。<br />
+<br />
+Q: 毎週開催ですか？<br />
+A: 月2回程度（隔週）を予定しています。</p>
+
+<p style="vertical-align:top;">Q: 開催曜日と時間帯は決まっていますか？<br />
+A:&nbsp;原則、土曜日の午後の開催を予定しております。春休みや夏休み、祝祭日などに変則的に開催する可能性もあります。<br />
+<br />
+Q: プログラミングについて初心者でも大丈夫ですか？<br />
+A: プログラミング初心者でも取り組めるようにコース設計に努めます。</p>
+
+<p>Q: すべてのコースを受講可能ですか？<br />
+A: 学年や力量と受講状況に応じてコースを選択するため、受講できない場合があるかもしれませんのでご了承ください。</p>
+
+<p>Q: 講座で利用できるパソコンがありません。<br />
+A: 必要に応じて貸し出しを行います。<a class="icon-pdf" href="/fs/2/2/6/1/0/0/_/_____.pdf">機材借用書.pdf (PDF 92KB)</a>をよくお読みの上、<a href="https://forms.office.com/r/hEG37QZWDT">機材貸出の申し込みフォーム</a>からお申し込みください。</p>
+
+
+
   <!-- chatbot-btn -->
   <div class="chatbot-btn">
     <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 20 20" width="20" height="20">
@@ -85,7 +138,8 @@
         7: { content: '{{name}}さん, お電話番号を教えてください。', human: [10] },
         8: { content: '{{name}}さん, Eメールアドレスを教えてください。', human: [10] },
         9: { content: 'OK! {{name}}さん, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
-        10: { content: 'ありがとう！あなたのお名前は？', human: [3] },
+        10: { content: 'ありがとう！あなたのお名前は？', human: [11] },
+        11: { content: '{{name}}さんもかわいいよ。興味のあることは何ですか？', human: [4, 5] },
       },
       human: {
         0: { content: '開講時期を知りたい。', bot: 1 },
@@ -99,6 +153,7 @@
         8: { content: '電話', bot: 7 },
         9: { content: 'Eメール', bot: 8 },
         10: { content: '', bot: 9, name: 'contact' },
+        11: { content: '', bot: 11, name: 'name' },
       }
     }
     // adding a fingerprint hash to localstorage
@@ -110,8 +165,8 @@
         localStorage.setItem(keyLS, fingerprint)
       });
     }*/
-    // Initializing ChatBotByItchief by calling the following function and passing the required parameters to it
-    chatBotByItchiefInit({
+    // Initializing ChatBot by calling the following function and passing the required parameters to it
+    chatBotInit({
       chatbotBtnSel: chatbotBtnSel,
       data: data,
       url: url,
@@ -176,32 +231,49 @@
 		}
 		timer = setTimeout(analyze, 1000);
 	};
-	const input = function(message) {
-		//builder.build(buildFunction(message));
+	const input = function(type, message) {
     let path = tokenizer_.tokenize(message);
-    console.log('path',path);
     const outtarget = document.getElementById("output");
-		output = [];
+		let output = [];
 		for (const element of path) {
 		  //output += element.surface_form + ' ' + element.pos + '<br>';
 			output.push([element.surface_form, element.pos]);
 		}
-		// 敬称チェック
-		switch (output[output.length-1][0]) {
-			case 'くん':	case '君':	case 'さん':	case '様':
-			case 'さま':	case 'ちゃん':	case '社長':	case '部長':
-			case '課長':	case '係長':	case '委員長':	case '組長':
-				output.pop();
+		let content = '';
+		let response = '';
+		//builder.build(buildFunction(message));
+		switch (type) {
+			case 'name':
+				// 敬称チェック
+				switch (output[output.length-1][0]) {
+					case 'くん':	case '君':	case 'さん':	case '様':
+					case 'さま':	case 'ちゃん':	case '社長':	case '部長':
+					case '課長':	case '係長':	case '委員長':	case '組長':
+						output.pop();
+					break;
+				}
+				for (const word of output) {
+				  response += word[0] + ' ' + word[1] + '<br>';
+					content += word[0];
+				}
+		    outtarget.innerHTML = response;
+				return [content, ""];
+			break;
+			case '':
+				// 質問チェック
+				for (const word of output) {
+				  response += word[0] + ' ' + word[1] + '<br>';
+					if (word[0] === '内容') {
+						content = "応答内容をここに入れる";
+					}
+				}
+		    outtarget.innerHTML = response;
+				return [message, content];
+			break;
+			default:
+			return [message, ""];
 			break;
 		}
-		content = '';
-		response = '';
-		for (const word of output) {
-		  response += word[0] + ' ' + word[1] + '<br>';
-			content += word[0];
-		}
-    outtarget.innerHTML = response;
-		return content;
 	}
 	</script>
 <table hidden="">

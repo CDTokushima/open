@@ -1,2 +1,2 @@
-const RELATIVE_PATH = "/chatbot/chatbot";
+const RELATIVE_PATH = "/open/chatbot/chatbot";
 

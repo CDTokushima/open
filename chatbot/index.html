@@ -186,10 +186,11 @@ A: 必要に応じて貸し出しを行います。<a class="icon-pdf" href="/fs
 	<input id="sentence" maxlength="100" oninput="inputted();" size="30" type="text" />
 	<div id="output">&nbsp;</div>
 
+  <script src="./chatbot/path.js"></script>
 	<script src="./chatbot/kuromoji.js"></script><script>
 	let timer = null;
 
-	const builder = kuromoji.builder({ dicPath: "/chatbot" })
+	const builder = kuromoji.builder({ dicPath: RELATIVE_PATH })
 
 	const buildFunction = (string) => {
 	  return (err, tokenizer) => {

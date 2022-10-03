@@ -3,8 +3,8 @@ body {
 }
 .top {
   width: 100%;
-  color: white;
-  background-color: #2877C7;
+  color: #2877C7;
+  background-color: white;
   text-align: center;
 }
 #icon {
@@ -70,3 +70,16 @@ body {
   background-color: #2877C7;
   text-align: center;
 }
+
+/* Except for Chrome、Safari */
+summary {
+  cursor: pointer;
+  transition: 0.2s;
+}
+/* Hovering Style */
+summary:hover {
+  cursor: pointer;
+  background-color: #EFEFEF;
+}
+
+

@@ -5,7 +5,7 @@ function getDateTime() {
   return now.toLocaleString() + gmt;
 }
 
-class ChatBotByItchief {
+class ChatBot {
   #$element;
   #data;
   #url;
@@ -161,9 +161,11 @@ class ChatBotByItchief {
       this.#botId = +$target.closest('.chatbot__submit').dataset.botId;
       humanContent = this.#$element.querySelector('.chatbot__input').value;
       humanField = this.#$element.querySelector('.chatbot__input').dataset.name;
-      if (humanField) {
-        this.#fields[humanField] = input(humanContent);
-      }
+			let content = input(humanField, humanContent);
+      this.#fields[humanField] = content[0];
+			if (content[1].indexOf('応答') >= 0) {
+				alert("応答!");
+			}
       this.#addToChatHumanResponse(humanContent);
       this.#outputContent(this.#delay);
     } else if (botId) {
@@ -303,7 +305,7 @@ const chatbotTemplate = () => {
   </div>`;
 };
 
-const chatBotByItchiefInit = config => {
+const chatBotInit = config => {
   let chatbot;
   let $chatbot = document.querySelector('.chatbot');
   if (!$chatbot) {
@@ -322,7 +324,7 @@ const chatBotByItchiefInit = config => {
     }
     $chatbot.classList.toggle('chatbot_hidden');
     if (!chatbot) {
-      chatbot = new ChatBotByItchief(config);
+      chatbot = new ChatBot(config);
       return chatbot;
     }
   };

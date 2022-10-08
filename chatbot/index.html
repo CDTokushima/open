@@ -50,16 +50,16 @@
 
 <p style="vertical-align:top;">
 Q: <font class="q">兄弟で参加できますか？</font><br />
-A: <font class="a">参加資格があれば可能です。</font><br />
+A: <font class="a">参加資格があれば兄弟で参加が可能です。</font><br />
 <br />
 Q: <font class="q">申込締め切りはいつですか？</font><br />
-A: <font class="a">2月10日（木）を予定しています</font>。<br />
+A: <font class="a">申込締め切りは2月10日（木）を予定しています</font>。<br />
 <br />
 Q: <font class="q">対象年齢は？</font><br />
-A: <font class="a">小学生〜高校生が対象です。（コースによって参加資格が異なります）</font><br />
+A: <font class="a">対象年齢は小学生〜高校生が対象です。（コースによって参加資格が異なります）</font><br />
 <br />
 Q: <font class="q">講座の内容は？</font><br />
-A: <font class="a">課題解決ワークショップ、プログラミング、マインクラフト、ホームページ作り、データ分析、AIプログラミングなどを企画中です。</font><br />
+A: <font class="a">講座の内容は課題解決ワークショップ、プログラミング、マインクラフト、ホームページ作り、データ分析、AIプログラミングなどを企画中です。</font><br />
 <br />
 Q: <font class="q">オンラインのみですか？</font><br />
 A: <font class="a">オンラインと大学での対面を併用します。</font><br />
@@ -67,7 +67,7 @@ A: <font class="a">オンラインと大学での対面を併用します。</fo
 Q: <font class="q">プログラミング言語はなんですか？</font><br />
 A: <font class="a">ビスケット、Scratch、マインクラフト(Make Code）、HTML、JavaScript、R言語、Python、等を予定しています。</font><br />
 <br />
-Q: <font class="q">小学1年生でも参加できますか？</font><br />
+Q: <font class="q">小学生（小学1年生）でも参加できますか？</font><br />
 A: <font class="a">小学3年生以下の場合は保護者等の補助をお願いすることがあります。</font><br />
 <br />
 Q: <font class="q">抽選ですか？先着順ですか？</font><br />
@@ -130,21 +130,24 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
         0: {
           content: 'こんにちは！とくぽんAI塾です。何かご質問はありますか？', human: [0, 1, 2]
         },
-        1: { content: 'なるほど。あなたのお名前は？', human: [3] },
+        1: { content: 'そうなんですね。あなたのお名前は？', human: [3] },
         2: { content: 'あなたのお名前は？', human: [3] },
         3: { content: '{{name}}さん, 興味のあることは何ですか？', human: [4, 5] },
         4: { content: '{{name}}さん, こちらにアクセスしてください。 <a href="https://www.tokushima-u.ac.jp/ai/tokupon/" target="_blank">とくぽんAI塾</a>. こちらに詳しい情報があります。', human: [6] },
         5: { content: "{{name}}さん, ご質問はなんですか？", human: [7] },
-        6: { content: '{{name}}さん, ご質問を受け付けました。後ほど連絡しますので、連絡先を教えてください。', human: [8, 9] },
+        6: { content: '{{name}}さん, 次のいずれかの方法で詳しく教えてください。', human: [8, 9, 12] },
         7: { content: '{{name}}さん, お電話番号を教えてください。', human: [10] },
         8: { content: '{{name}}さん, Eメールアドレスを教えてください。', human: [10] },
         9: { content: 'OK! {{name}}さん, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
         10: { content: 'ありがとう！あなたのお名前は？', human: [11] },
         11: { content: '<b>{{name}}さんもかわいいよ！</b> <br>興味のあることは何ですか？', human: [4, 5] },
-        99: { content: '<div class="box">{{answer}}</div> <br>他に何か質問はありますか？', human: [4, 5] },
+				12: { content: 'こちらに<a href="tel:088-656-7095">電話</a>でお問い合わせください。', human: [6] },
+				13: { content: 'こちらに<a href="mailto:kygakujc＠tokushima-u.ac.jp">メール</a>でお問い合わせください。', human: [6] },
+				14: { content: 'こちらから<a href="https://www.tokushima-u.ac.jp/ai/asks/" target="_blank">Webフォーム</a>でお問い合わせください。', human: [6] },
+        99: { content: '回答はこちら <br><div class="box">{{answer}}</div> <br>他に何か質問はありますか？', human: [4, 5] },
       },
       human: {
-        0: { content: '開講時期を知りたい。', bot: 1 },
+        0: { content: '質問したいことがあります。', bot: 1 },
         1: { content: '特にないです。', bot: 2 },
         2: { content: 'とくぽんかわいいね！', bot: 10 },
         3: { content: '', bot: 3, name: 'name' },
@@ -152,10 +155,11 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
         5: { content: 'とくぽんAI塾について聞きたいことがあります。', bot: 5 },
         6: { content: '初めにもどる', bot: 3 },
         7: { content: '', bot: 6, name: '' },
-        8: { content: '電話', bot: 7 },
-        9: { content: 'Eメール', bot: 8 },
+        8: { content: '電話', bot: 12 },
+        9: { content: 'Eメール', bot: 13 },
         10: { content: '', bot: 9, name: 'contact' },
         11: { content: '', bot: 11, name: 'name' },
+	      12: { content: 'Webフォーム', bot: 14 },
       }
     }
     // adding a fingerprint hash to localstorage
@@ -192,6 +196,7 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
 	<script src="./chatbot/kuromoji.js"></script><script>
 	let timer = null;
 
+	const contentword = ['名詞', '動詞', '助動詞', '形容詞', '記号'];
 	const builder = kuromoji.builder({ dicPath: RELATIVE_PATH })
 
 	const buildFunction = (string) => {
@@ -215,12 +220,16 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
 			for (let i = 0; i < dataset.q.length; i++) {
 				query_ = dataset.q[i];
 		    let path = tokenizer_.tokenize(query_);
-				keywords = [];
-				const contentword = ['名詞', '動詞', '形容詞', '記号'];
+				let keywords = [];
+				let prev = '';
 				for (const element of path) {
-					if (contentword.includes(element.pos)) {
-				  	keywords.push(element.surface_form);
+					if (!contentword.includes(element.pos)) {
+						prev = '';
+						continue;
 					}
+			  	keywords.push(element.surface_form);
+					prev += element.surface_form;
+			  	keywords.push(prev);
 				}
 				dataset_.push({
 						key: keywords,
@@ -273,8 +282,6 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
 				  //output += element.surface_form + ' ' + element.pos + '<br>';
 					output.push([element.surface_form, element.pos]);
 				}
-				let maxans = [-1, 0];
-				let answers = new Array(dataset_.length).fill(0);
 				let content = '';
 				let response = '';
 				//builder.build(buildFunction(message));
@@ -301,13 +308,33 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
 						return [message, content];
 					break;
 					case '':
+					{
+						let queries = [];
+						let prev = '';
 						// 質問チェック
-						for (const word of output) {
-						  response += word[0] + ' ' + word[1] + '<br>';
+						for (const element of path) {
+						  response += element.surface_form + ' ' + element.pos + '<br>';
+							if (!contentword.includes(element.pos)) {
+								prev = '';
+								continue;
+							}
+							if (prev.length > 0) {
+	 							prev += element.surface_form;
+						  	queries.push(prev);
+							} else {
+	 							prev += element.surface_form;
+							}
+					  	queries.push(element.surface_form);
+						}
+				    outtarget.innerHTML = response;
+						// 回答検索
+						let maxans = [-1, 0];
+						let answers = new Array(dataset_.length).fill(0);
+						for (const word of queries) {
 							for (let i = 0; i < dataset_.length; i++) {
 								let key_ = dataset_[i].key;
-								let key = word[0];
-								if (key_.includes(word[0])) {
+								let key = word;
+								if (key_.includes(word)) {
 									//content += dataset_[i].ans;
 									//alert(content);
 									answers[i]++;
@@ -323,8 +350,8 @@ A: <font class="a">必要に応じて貸し出しを行います。<a class="ico
 						if (maxans[1] > 0) {
 							content = dataset_[maxans[0]].ans;
 						}
-				    outtarget.innerHTML = response;
 						return [message, content];
+					}
 					break;
 					default:
 					return [message, ""];

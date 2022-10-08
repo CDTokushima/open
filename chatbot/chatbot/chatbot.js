@@ -10,7 +10,7 @@ class ChatBot {
   #data;
   #url;
   #keyLS;
-  #delay = 500;
+  #delay = 100;
   #botId = 0;
   #contentIndex = 1;
   #start = true;
@@ -163,8 +163,9 @@ class ChatBot {
       humanField = this.#$element.querySelector('.chatbot__input').dataset.name;
 			let content = input(humanField, humanContent);
       this.#fields[humanField] = content[0];
-			if (content[1].indexOf('応答') >= 0) {
-				alert("応答!");
+			if (content[1] !== '') {
+				this.#fields['answer'] = content[1];
+				this.#botId = 99;
 			}
       this.#addToChatHumanResponse(humanContent);
       this.#outputContent(this.#delay);
@@ -274,7 +275,7 @@ class ChatBot {
   	if (e.keyCode === 13) {
 			//this.#eventHandlerClick(e);
 			//let e = new Event('click');
-			document.getElementsByClassName('chatbot__submit')[0].click();
+			document.querySelector('.chatbot__submit').click();
 		}
 		return false;
 	}
@@ -306,12 +307,12 @@ const chatbotTemplate = () => {
 };
 
 const chatBotInit = config => {
-  let chatbot;
   let $chatbot = document.querySelector('.chatbot');
   if (!$chatbot) {
     document.body.insertAdjacentHTML('beforeend', chatbotTemplate());
     $chatbot = document.querySelector('.chatbot');
   }
+
   config['element'] = $chatbot;
   document.querySelector(config.chatbotBtnSel).onclick = e => {
     const $chatbotToggle = e.target.closest(config.chatbotBtnSel);
@@ -323,9 +324,25 @@ const chatBotInit = config => {
       }
     }
     $chatbot.classList.toggle('chatbot_hidden');
+
+    let chatbot;
     if (!chatbot) {
       chatbot = new ChatBot(config);
       return chatbot;
     }
   };
+};
+
+const datasetInit = dataset => {
+	let q_ = document.querySelectorAll('.' + dataset.query);
+	let a_ = document.querySelectorAll('.' + dataset.answer);
+	let queries = [];
+	let answers = [];
+	for (let i = 0; i < q_.length; i++) {
+		queries.push(q_[i].innerText);
+	}
+	for (let i = 0; i < a_.length; i++) {
+		answers.push(a_[i].innerText);
+	}
+	return {q: queries, a: answers};
 };

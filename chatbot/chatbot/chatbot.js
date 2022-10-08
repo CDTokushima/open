@@ -306,6 +306,8 @@ const chatbotTemplate = () => {
   </div>`;
 };
 
+let chatbot;
+
 const chatBotInit = config => {
   let $chatbot = document.querySelector('.chatbot');
   if (!$chatbot) {
@@ -325,7 +327,6 @@ const chatBotInit = config => {
     }
     $chatbot.classList.toggle('chatbot_hidden');
 
-    let chatbot;
     if (!chatbot) {
       chatbot = new ChatBot(config);
       return chatbot;

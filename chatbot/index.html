@@ -383,7 +383,7 @@ A: <span class="a">必要に応じて貸し出しを行います。<a class="ico
 								maxans[1] = answers[i];
 							}
 						}
-						if (maxans[1] > (count / answers.length) / queries.length) {
+						if (maxans[1] > (count / (answers.length + queries.length))) {
 							content = dataset_[maxans[0]].a;
 						}
 						return [message, content];

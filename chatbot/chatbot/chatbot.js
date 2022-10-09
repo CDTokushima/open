@@ -337,13 +337,18 @@ const chatBotInit = config => {
 const datasetInit = dataset => {
 	let q_ = document.querySelectorAll('.' + dataset.query);
 	let a_ = document.querySelectorAll('.' + dataset.answer);
+	let r_ = document.querySelectorAll('.' + dataset.refer);
 	let queries = [];
 	let answers = [];
+	let refers = [];
 	for (let i = 0; i < q_.length; i++) {
 		queries.push(q_[i].innerText);
 	}
 	for (let i = 0; i < a_.length; i++) {
 		answers.push(a_[i].innerText);
 	}
-	return {q: queries, a: answers};
+	for (let i = 0; i < r_.length; i++) {
+		refers.push(r_[i].innerText);
+	}
+	return {q: queries, a: answers, r: refers};
 };

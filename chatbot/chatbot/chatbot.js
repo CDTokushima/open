@@ -345,7 +345,7 @@ const datasetInit = dataset => {
 		queries.push(q_[i].innerText);
 	}
 	for (let i = 0; i < a_.length; i++) {
-		answers.push(a_[i].innerText);
+		answers.push(a_[i].innerHTML);
 	}
 	for (let i = 0; i < r_.length; i++) {
 		refers.push(r_[i].innerText);

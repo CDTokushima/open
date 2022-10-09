@@ -352,3 +352,293 @@ const datasetInit = dataset => {
 	}
 	return {q: queries, a: answers, r: refers};
 };
+
+
+
+// 1 - Specifying the key in localstorage where the browser fingerprint will be stored
+const keyLS = 'fingerprint';
+// 2 - Specifying the CSS selector for the button that will be used to call the dialog window with the chatbot
+const chatbotBtnSel = '.chatbot-btn';
+// 3 - URL to index.html
+const url = 'https://tokushimauniv.webhook.office.com/webhookb2/867d3b8b-a2f9-4b72-abfa-844f0e6ed5b1@8671c3a4-4538-47f6-8717-16a1d6b0ca98/IncomingWebhook/b4f60c8e8ac44f7f80c8814cb5ff0aa4/4f7c7e3f-d74d-41d6-b638-cce86cea6d72';
+// 4 - Data description that defines the dialog script for the chatbot
+const data = {
+  bot: {
+    0: {
+      content: 'こんにちは！とくぽんAI塾です。何かご質問はありますか？', human: [0, 1, 2]
+    },
+    1: { content: 'そうなんですね。あなたのお名前は？', human: [3] },
+    2: { content: 'あなたのお名前は？', human: [3] },
+    3: { content: '{{name}}さん, 興味のあることは何ですか？', human: [4, 5] },
+    4: { content: '{{name}}さん, こちらにアクセスしてください。 <a href="https://www.tokushima-u.ac.jp/ai/tokupon/" target="_blank">とくぽんAI塾</a>. こちらに詳しい情報があります。', human: [6] },
+    5: { content: "{{name}}さん, ご質問はなんですか？", human: [7] },
+    6: { content: '{{name}}さん, 次のいずれかの方法で詳しく教えてください。', human: [8, 9, 12] },
+    7: { content: '{{name}}さん, お電話番号を教えてください。', human: [10] },
+    8: { content: '{{name}}さん, Eメールアドレスを教えてください。', human: [10] },
+    9: { content: 'OK! {{name}}さん, 折り返し {{contact}} へご連絡差し上げますので、少々お待ちください。', human: [6] },
+    10: { content: 'ありがとう！あなたのお名前は？', human: [11] },
+    11: { content: '<b>{{name}}さんもかわいいよ！</b> <br>興味のあることは何ですか？', human: [4, 5] },
+		12: { content: 'こちらに<a href="tel:088-656-7095">電話</a>でお問い合わせください。', human: [6] },
+		13: { content: 'こちらに<a href="mailto:kygakujc＠tokushima-u.ac.jp">メール</a>でお問い合わせください。', human: [6] },
+		14: { content: 'こちらから<a href="https://www.tokushima-u.ac.jp/ai/asks/" target="_blank">Webフォーム</a>でお問い合わせください。', human: [6] },
+    99: { content: '回答はこちら <br><br><div class="box">{{answer}}</div> <br>他に何か質問はありますか？', human: [4, 5] },
+  },
+  human: {
+    0: { content: '質問したいことがあります。', bot: 1 },
+    1: { content: '特にないです。', bot: 2 },
+    2: { content: 'とくぽんかわいいね！', bot: 10 },
+    3: { content: '', bot: 3, name: 'name' },
+    4: { content: 'とくぽんAI塾に興味があります。', bot: 4 },
+    5: { content: 'とくぽんAI塾について聞きたいことがあります。', bot: 5 },
+    6: { content: '初めにもどる', bot: 3 },
+    7: { content: '', bot: 6, name: '' },
+    8: { content: '電話', bot: 12 },
+    9: { content: 'Eメール', bot: 13 },
+    10: { content: '', bot: 9, name: 'contact' },
+    11: { content: '', bot: 11, name: 'name' },
+    12: { content: 'Webフォーム', bot: 14 },
+  }
+}
+// adding a fingerprint hash to localstorage
+/*
+let fingerprint = localStorage.getItem(keyLS);
+if (!fingerprint) {
+  Fingerprint2.get(function (components) {
+    fingerprint = Fingerprint2.x64hash128(components.map(function (pair) { return pair.value }).join(), 31)
+    localStorage.setItem(keyLS, fingerprint)
+  });
+}*/
+// Initializing ChatBot by calling the following function and passing the required parameters to it
+chatBotInit({
+  chatbotBtnSel: chatbotBtnSel,
+  data: data,
+  url: url,
+  keyLS: keyLS
+});
+
+setTimeout(function () {
+  const chatbotToggleTooltip = document.querySelector('.chatbot-toggle-tooltip');
+  chatbotToggleTooltip.classList.add('chatbot-toggle-tooltip_show');
+  setTimeout(function () {
+    chatbotToggleTooltip.classList.remove('chatbot-toggle-tooltip_show');
+  }, 10000)
+}, 10000)
+
+
+
+const contentword = ['名詞', '動詞', '助動詞', '記号'];//, '形容詞'];
+const basicword = ['名詞', '動詞', '形容詞'];
+const stopword = ['?', '!', '。', '、', ',', '.'];
+const builder = kuromoji.builder({ dicPath: RELATIVE_PATH })
+
+	var toHalfWidth = function(value) {
+		if (!value) return value;
+
+		return String(value).replace(/[！-～]/g, function(all) {
+			return String.fromCharCode(all.charCodeAt(0) - 0xFEE0);
+		});
+	};
+
+	const analyzeKeyword = function(query_) {
+		if (!query_ || query_ === '') {
+			return [];
+		}
+		let keywords = [];
+    let path = tokenizer_.tokenize(query_);
+		let prev = '';
+		for (const element of path) {
+			if (!contentword.includes(element.pos)) {
+				prev = '';
+				continue;
+			}
+	  	keywords.push(toHalfWidth(element.surface_form.toLowerCase()));
+			if (prev.length > 0) {
+					prev += element.surface_form;
+		  	keywords.push(toHalfWidth(prev.toLowerCase()));
+			} else {
+					prev += element.surface_form;
+			}
+			if (element.word_type !== "UNKNOWN" && basicword.includes(element.pos)) {
+				keywords.push(toHalfWidth(element.basic_form.toLowerCase()));
+				keywords.push(toHalfWidth(element.pronunciation));
+			}
+		}
+		return keywords;
+	};
+
+	const buildFunction = (string) => {
+	  return (err, tokenizer) => {
+			tokenizer_ = tokenizer;
+	    //console.log('string',string);
+	    //let path = tokenizer.tokenize(string);
+	    //console.log('path',path);
+	    //const target = document.getElementById("output");
+			//output = '';
+			//for (const element of path) {
+			//  output += element.surface_form + ' ' + element.pos + '<br>';
+			//}
+	    //target.innerHTML = output;
+			//humanContent = output;
+
+			dataset = datasetInit({
+				query: 'q',
+				answer: 'a',
+				refer: 'r',
+			});
+			for (let i = 0; i < dataset.q.length; i++) {
+				query_ = i < dataset.q.length ? dataset.q[i] : '';
+				let keys = analyzeKeyword(query_);
+				answer_ = i < dataset.a.length ? dataset.a[i] : '';
+				let anss = analyzeKeyword(answer_);
+				refer_ = i < dataset.r.length ? dataset.r[i] : '';
+				let refs = analyzeKeyword(refer_);
+				dataset_.push({
+						key: keys.concat(refs),
+						ans: anss,
+						a: dataset.a[i]
+					});
+			}
+			//	alert(dataset_);
+	  }
+	};
+
+	let dataset_ = [];
+	let tokenizer_ = undefined;
+	if (!tokenizer_) {
+		builder.build(buildFunction(''));
+	}
+
+	const analyze = function() {
+		const target = document.getElementById("sentence");
+		if (target) {
+			val = target.value;
+		}
+		if (typeof val === 'string' && val.length > 0) {
+//		let result = builder.build(buildFunction(target.value));
+			if (tokenizer_) {
+		    let path = tokenizer_.tokenize(target.value);
+		    //console.log('path',path);
+		    const outtarget = document.getElementById("output");
+				output = '';
+				for (const element of path) {
+				  output += element.surface_form + ' ' + element.pos + '<br>';
+				}
+		    outtarget.innerHTML = output;
+			}
+		}
+	};
+
+let timer = null;
+
+const inputted = function() {
+	if (timer != null) {
+		clearTimeout(timer);
+		timer = null;
+	}
+	timer = setTimeout(analyze, 1000);
+};
+
+const input = function(type, message) {
+	if (typeof message === 'string' && message.length > 0) {
+		if (tokenizer_) {
+	    let path = tokenizer_.tokenize(message);
+	    const outtarget = document.getElementById("output");
+			let output = [];
+			for (const element of path) {
+			  //output += element.surface_form + ' ' + element.pos + '<br>';
+				output.push([element.surface_form, element.pos]);
+			}
+			let content = '';
+			let response = '';
+			//builder.build(buildFunction(message));
+			switch (type) {
+				case 'name':
+					// 敬称チェック
+					switch (output[output.length-1][0]) {
+						case 'くん':	case '君':	case 'さん':	case '様':
+						case 'さま':	case 'ちゃん':	case '社長':	case '部長':
+						case '課長':	case '係長':	case '委員長':	case '組長':
+							output.pop();
+						break;
+					}
+					for (const word of output) {
+					  response += word[0] + ' ' + word[1] + '<br>';
+						content += word[0];
+					}
+			    outtarget.innerHTML = response;
+					return [content, ""];
+				break;
+				case 'contact':
+					// 連絡先
+			    outtarget.innerHTML = response;
+					return [message, content];
+				break;
+				case '':
+				{
+					let queries = [];
+					let prev = '';
+					// 質問チェック
+					for (const element of path) {
+					  response += element.surface_form + ' ' + element.pos + '<br>';
+						if (!contentword.includes(element.pos)) {
+							prev = '';
+							continue;
+						}
+						if (prev.length > 0) {
+ 							prev += element.surface_form;
+					  	queries.push(toHalfWidth(prev.toLowerCase()));
+						} else {
+ 							prev += element.surface_form;
+						}
+				  	queries.push(toHalfWidth(element.surface_form.toLowerCase()));
+						if (element.word_type !== "UNKNOWN" && basicword.includes(element.pos)) {
+							queries.push(toHalfWidth(element.basic_form.toLowerCase()));
+							queries.push(toHalfWidth(element.pronunciation));
+						}
+					}
+			    outtarget.innerHTML = response;
+					// 回答検索
+					let maxans = [-1, 0];
+					let answers = new Array(dataset_.length).fill(0);
+					for (const word of queries) {
+						if (stopword.includes(word)) {
+							continue;
+						}
+						for (let i = 0; i < dataset_.length; i++) {
+							let key_ = dataset_[i].key;
+							if (key_.includes(word)) {
+								//content += dataset_[i].a;
+								//alert(content);
+								answers[i] += 1 / Math.sqrt(key_.length + 0.1);
+							}
+							let ans_ = dataset_[i].ans;
+							if (ans_.includes(word)) {
+								//content += dataset_[i].ans;
+								//alert(content);
+								answers[i] += 0.5 / Math.sqrt(ans_.length + 0.1);
+							}
+						}
+					}
+					let count = 0;
+					for (let i = 0; i < answers.length; i++) {
+						if (answers[i] > 0) {
+							count++;
+						}
+						if (answers[i] > maxans[1]) {
+							maxans[0] = i;
+							maxans[1] = answers[i];
+						}
+					}
+					if (maxans[1] > (count / (answers.length + queries.length))) {
+						content = dataset_[maxans[0]].a;
+					}
+					return [message, content];
+				}
+				break;
+				default:
+				return [message, ""];
+				break;
+			}
+		}
+	}
+}

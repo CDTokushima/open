@@ -36,6 +36,7 @@
 }
 
 .chatbot-btn:hover .chatbot-toggle-tooltip {
+  color: mediumblue;
   display: block;
 }
 

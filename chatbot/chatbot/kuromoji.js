@@ -6513,7 +6513,7 @@ exports.join = function() {
   var paths = Array.prototype.slice.call(arguments, 0);
   return exports.normalize(filter(paths, function(p, index) {
     if (typeof p !== 'string') {
-      throw new TypeError('Arguments to path.join must be strings');
+      throw new TypeError('Arguments to joinPath must be strings');
     }
     return p;
   }).join('/'));
@@ -8145,6 +8145,7 @@ module.exports = BrowserDictionaryLoader;
 
 },{"./DictionaryLoader":20,"zlibjs/bin/gunzip.min.js":5}],20:[function(require,module,exports){
 /*
+ * Copyright 2022 Hiroki Tanioka
  * Copyright 2014 Takuya Asano
  * Copyright 2010-2014 Atilika Inc. and contributors
  *
@@ -8181,6 +8182,15 @@ DictionaryLoader.prototype.loadArrayBuffer = function (file, callback) {
     throw new Error("DictionaryLoader#loadArrayBuffer should be overwrite");
 };
 
+DictionaryLoader.prototype.isValidUrl = function(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
 /**
  * Load dictionary files
  * @param {DictionaryLoader~onLoad} load_callback Callback function called after loaded
@@ -8189,12 +8199,13 @@ DictionaryLoader.prototype.load = function (load_callback) {
     var dic = this.dic;
     var dic_path = this.dic_path;
     var loadArrayBuffer = this.loadArrayBuffer;
+    var isValidUrl = this.isValidUrl;
 
     async.parallel([
         // Trie
         function (callback) {
             async.map([ "./base.dat.gz", "./check.dat.gz" ], function (filename, _callback) {
-                loadArrayBuffer(path.join(dic_path, filename), function (err, buffer) {
+                loadArrayBuffer(isValidUrl(dic_path) ? new URL(filename, dic_path).toString() : joinPath(dic_path, filename), function (err, buffer) {
                     if(err) {
                         return _callback(err);
                     }
@@ -8214,7 +8225,7 @@ DictionaryLoader.prototype.load = function (load_callback) {
         // Token info dictionaries
         function (callback) {
             async.map([ "./tid.dat.gz", "./tid_pos.dat.gz", "./tid_map.dat.gz" ], function (filename, _callback) {
-                loadArrayBuffer(path.join(dic_path, filename), function (err, buffer) {
+                loadArrayBuffer(isValidUrl(dic_path) ? new URL(filename, dic_path).toString() : joinPath(dic_path, filename), function (err, buffer) {
                     if(err) {
                         return _callback(err);
                     }
@@ -8234,7 +8245,8 @@ DictionaryLoader.prototype.load = function (load_callback) {
         },
         // Connection cost matrix
         function (callback) {
-            loadArrayBuffer(path.join(dic_path, "./cc.dat.gz"), function (err, buffer) {
+            var filename = "./cc.dat.gz";
+            loadArrayBuffer(isValidUrl(dic_path) ? new URL(filename, dic_path).toString() : joinPath(dic_path, filename), function (err, buffer) {
                 if(err) {
                     return callback(err);
                 }
@@ -8246,7 +8258,7 @@ DictionaryLoader.prototype.load = function (load_callback) {
         // Unknown dictionaries
         function (callback) {
             async.map([ "./unk.dat.gz", "./unk_pos.dat.gz", "./unk_map.dat.gz", "./unk_char.dat.gz", "./unk_compat.dat.gz", "./unk_invoke.dat.gz" ], function (filename, _callback) {
-                loadArrayBuffer(path.join(dic_path, filename), function (err, buffer) {
+                loadArrayBuffer(isValidUrl(dic_path) ? new URL(filename, dic_path).toString() : joinPath(dic_path, filename), function (err, buffer) {
                     if(err) {
                         return _callback(err);
                     }

@@ -604,7 +604,7 @@ const input = async function(type, message) {
 							continue;
 						}
 						const result = await nearest(word);
-						console.log(result);
+						//console.log(result);
 						for (const word of result) {
 							for (let i = 0; i < dataset_.length; i++) {
 								let key_ = dataset_[i].key;

@@ -597,7 +597,6 @@ const input = async function(type, message) {
 					}
 			    outtarget.innerHTML = response;
 					// 回答検索
-					let maxans = [-1, 0];
 					let answers = new Array(dataset_.length).fill(0);
 					for (const word of queries) {
 						if (stopword.includes(word)) {
@@ -612,17 +611,18 @@ const input = async function(type, message) {
 								if (key_.includes(word)) {
 									//content += dataset_[i].a;
 									//alert(content);
-									answers[i] += 1 / Math.sqrt(key_.length + 0.1);
+									answers[i] += 1 / Math.sqrt(key_.length + 1);
 								}
 								let ans_ = dataset_[i].ans;
 								if (ans_.includes(word)) {
 									//content += dataset_[i].ans;
 									//alert(content);
-									answers[i] += 0.5 / Math.sqrt(ans_.length + 0.1);
+									answers[i] += 0.5 / Math.sqrt(ans_.length + 1);
 								}
 							}
 						}
 					}
+					let maxans = [-1, 0];
 					let count = 0;
 					for (let i = 0; i < answers.length; i++) {
 						if (answers[i] > 0) {

@@ -603,8 +603,9 @@ const input = async function(type, message) {
 						if (stopword.includes(word)) {
 							continue;
 						}
-						const result = await nearest(word);
+						let result = await nearest(word);
 						//console.log(result);
+						result.unshift(word);
 						for (const word of result) {
 							for (let i = 0; i < dataset_.length; i++) {
 								let key_ = dataset_[i].key;

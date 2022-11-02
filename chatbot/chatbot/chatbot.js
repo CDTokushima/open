@@ -144,7 +144,7 @@ class ChatBot {
   }
 
   // function to handle the click event
-  #eventHandlerClick(e) {
+  async #eventHandlerClick(e) {
     const $target = e.target;
     const botId = $target.dataset.botId;
     const url = this.#url;
@@ -156,12 +156,11 @@ class ChatBot {
         return;
       }
       if (!this.#$element.querySelector('.chatbot__input').value.length) {
-        return;
       }
       this.#botId = +$target.closest('.chatbot__submit').dataset.botId;
       humanContent = this.#$element.querySelector('.chatbot__input').value;
       humanField = this.#$element.querySelector('.chatbot__input').dataset.name;
-			let content = input(humanField, humanContent);
+			const content = await input(humanField, humanContent);
       this.#fields[humanField] = content[0];
 			if (content[1] !== '') {
 				this.#fields['answer'] = content[1];
@@ -538,7 +537,7 @@ const inputted = function() {
 	timer = setTimeout(analyze, 1000);
 };
 
-const input = function(type, message) {
+const input = async function(type, message) {
 	if (typeof message === 'string' && message.length > 0) {
 		if (tokenizer_) {
 	    let path = tokenizer_.tokenize(message);
@@ -604,18 +603,22 @@ const input = function(type, message) {
 						if (stopword.includes(word)) {
 							continue;
 						}
-						for (let i = 0; i < dataset_.length; i++) {
-							let key_ = dataset_[i].key;
-							if (key_.includes(word)) {
-								//content += dataset_[i].a;
-								//alert(content);
-								answers[i] += 1 / Math.sqrt(key_.length + 0.1);
-							}
-							let ans_ = dataset_[i].ans;
-							if (ans_.includes(word)) {
-								//content += dataset_[i].ans;
-								//alert(content);
-								answers[i] += 0.5 / Math.sqrt(ans_.length + 0.1);
+						const result = await nearest(word);
+						console.log(result);
+						for (const word of result) {
+							for (let i = 0; i < dataset_.length; i++) {
+								let key_ = dataset_[i].key;
+								if (key_.includes(word)) {
+									//content += dataset_[i].a;
+									//alert(content);
+									answers[i] += 1 / Math.sqrt(key_.length + 0.1);
+								}
+								let ans_ = dataset_[i].ans;
+								if (ans_.includes(word)) {
+									//content += dataset_[i].ans;
+									//alert(content);
+									answers[i] += 0.5 / Math.sqrt(ans_.length + 0.1);
+								}
 							}
 						}
 					}

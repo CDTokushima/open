@@ -845,7 +845,7 @@ const input = async function(type, message) {
 					let maxscore = 0;
 					let allans = "";
 					for (let i = 0; i < answers.length; i++) {
-						if (answers[i] > 0) {
+						if (answers[i] > 10) {
 							allans += dataset_[i].a + " ";
 						}
 					}

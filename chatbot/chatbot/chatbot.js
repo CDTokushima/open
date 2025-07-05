@@ -337,9 +337,11 @@ const datasetInit = dataset => {
 	let q_ = document.querySelectorAll('.' + dataset.query);
 	let a_ = document.querySelectorAll('.' + dataset.answer);
 	let r_ = document.querySelectorAll('.' + dataset.refer);
+	let n_ = document.querySelectorAll('.' + dataset.number);
 	let queries = [];
 	let answers = [];
 	let refers = [];
+	let numbers = [];
 	for (let i = 0; i < q_.length; i++) {
 		queries.push(q_[i].innerText);
 	}
@@ -349,7 +351,10 @@ const datasetInit = dataset => {
 	for (let i = 0; i < r_.length; i++) {
 		refers.push(r_[i].innerText);
 	}
-	return {q: queries, a: answers, r: refers};
+	for (let i = 0; i < n_.length; i++) {
+		numbers.push(n_[i].innerText);
+	}
+	return {q: queries, a: answers, r: refers, n: numbers};
 };
 
 
@@ -430,102 +435,218 @@ const basicword = ['名詞', '動詞', '形容詞'];
 const stopword = ['?', '!', '。', '、', ',', '.'];
 const builder = kuromoji.builder({ dicPath: RELATIVE_PATH })
 
-	var toHalfWidth = function(value) {
-		if (!value) return value;
+let dataset_ = [];
+let inverted_ = {};
+let df_ = {};
+let N_ = 0;
 
-		return String(value).replace(/[！-～]/g, function(all) {
-			return String.fromCharCode(all.charCodeAt(0) - 0xFEE0);
-		});
-	};
+var toHalfWidth = function(value) {
+	if (!value) return value;
 
-	const analyzeKeyword = function(query_) {
-		if (!query_ || query_ === '') {
-			return [];
-		}
-		let keywords = [];
-    let path = tokenizer_.tokenize(query_);
-		let prev = '';
-		for (const element of path) {
-			if (!contentword.includes(element.pos)) {
-				prev = '';
-				continue;
-			}
-	  	keywords.push(toHalfWidth(element.surface_form.toLowerCase()));
-			if (prev.length > 0) {
-					prev += element.surface_form;
-		  	keywords.push(toHalfWidth(prev.toLowerCase()));
-			} else {
-					prev += element.surface_form;
-			}
-			if (element.word_type !== "UNKNOWN" && basicword.includes(element.pos)) {
-				keywords.push(toHalfWidth(element.basic_form.toLowerCase()));
-				keywords.push(toHalfWidth(element.pronunciation));
-			}
-		}
-		return keywords;
-	};
+	return String(value).replace(/[！-～]/g, function(all) {
+		return String.fromCharCode(all.charCodeAt(0) - 0xFEE0);
+	});
+};
 
-	const buildFunction = (string) => {
-	  return (err, tokenizer) => {
-			tokenizer_ = tokenizer;
-	    //console.log('string',string);
-	    //let path = tokenizer.tokenize(string);
-	    //console.log('path',path);
-	    //const target = document.getElementById("output");
-			//output = '';
-			//for (const element of path) {
-			//  output += element.surface_form + ' ' + element.pos + '<br>';
-			//}
-	    //target.innerHTML = output;
-			//humanContent = output;
-
-			dataset = datasetInit({
-				query: 'q',
-				answer: 'a',
-				refer: 'r',
-			});
-			for (let i = 0; i < dataset.q.length; i++) {
-				query_ = i < dataset.q.length ? dataset.q[i] : '';
-				let keys = analyzeKeyword(query_);
-				answer_ = i < dataset.a.length ? dataset.a[i] : '';
-				let anss = analyzeKeyword(answer_);
-				refer_ = i < dataset.r.length ? dataset.r[i] : '';
-				let refs = analyzeKeyword(refer_);
-				dataset_.push({
-						key: keys.concat(refs),
-						ans: anss,
-						a: dataset.a[i]
-					});
-			}
-			//	alert(dataset_);
-	  }
-	};
-
-	let dataset_ = [];
-	let tokenizer_ = undefined;
-	if (!tokenizer_) {
-		builder.build(buildFunction(''));
+const analyzeKeyword = function(query_) {
+	if (!query_ || query_ === '') {
+		return [];
 	}
-
-	const analyze = function() {
-		const target = document.getElementById("sentence");
-		if (target) {
-			val = target.value;
+	let keywords = [];
+  let path = tokenizer_.tokenize(query_);
+	let prev = '';
+	for (const element of path) {
+		if (!contentword.includes(element.pos)) {
+			prev = '';
+			continue;
 		}
-		if (typeof val === 'string' && val.length > 0) {
-//		let result = builder.build(buildFunction(target.value));
-			if (tokenizer_) {
-		    let path = tokenizer_.tokenize(target.value);
-		    //console.log('path',path);
-		    const outtarget = document.getElementById("output");
-				output = '';
-				for (const element of path) {
-				  output += element.surface_form + ' ' + element.pos + '<br>';
-				}
-		    outtarget.innerHTML = output;
+  	keywords.push(toHalfWidth(element.surface_form.toLowerCase()));
+		if (prev.length > 0) {
+				prev += element.surface_form;
+	  	keywords.push(toHalfWidth(prev.toLowerCase()));
+		} else {
+				prev += element.surface_form;
+		}
+		if (element.word_type !== "UNKNOWN" && basicword.includes(element.pos)) {
+			keywords.push(toHalfWidth(element.basic_form.toLowerCase()));
+			keywords.push(toHalfWidth(element.pronunciation));
+		}
+	}
+	return keywords;
+};
+
+const buildFunction = (string) => {
+  return (err, tokenizer) => {
+		tokenizer_ = tokenizer;
+    //console.log('string',string);
+    //let path = tokenizer.tokenize(string);
+    //console.log('path',path);
+    //const target = document.getElementById("output");
+		//output = '';
+		//for (const element of path) {
+		//  output += element.surface_form + ' ' + element.pos + '<br>';
+		//}
+    //target.innerHTML = output;
+		//humanContent = output;
+
+		dataset = datasetInit({
+			query: 'q',
+			answer: 'a',
+			refer: 'r',
+			number: 'n',
+		});
+
+		N_ = dataset.q.length;
+
+		for (let i = 0; i < dataset.q.length; i++) {
+			query_ = i < dataset.q.length ? dataset.q[i] : '';
+			let keys = analyzeKeyword(query_);
+			answer_ = i < dataset.a.length ? dataset.a[i] : '';
+			let anss = analyzeKeyword(answer_);
+			refer_ = i < dataset.r.length ? dataset.r[i] : '';
+			//let refs = analyzeKeyword(refer_);
+			let refs = [];
+
+			// DFカウント
+			uniqued = new Set(keys.concat(anss).concat(refs));
+			for (let key of uniqued) {
+				df_[key] = key in df_ ? df_[key] + 1 : 1;
 			}
 		}
-	};
+
+		for (let i = 0; i < dataset.q.length; i++) {
+			query_ = i < dataset.q.length ? dataset.q[i] : '';
+			let keys = analyzeKeyword(query_);
+			answer_ = i < dataset.a.length ? dataset.a[i] : '';
+			let anss = analyzeKeyword(answer_);
+			refer_ = i < dataset.r.length ? dataset.r[i] : '';
+			//let refs = analyzeKeyword(refer_);
+			let refs = [];
+			number_ = i < dataset.n.length ? dataset.n[i] : '';
+
+			// ドキュメントサイズ
+			let doc_size = 0;
+			doc_keys = keys.concat(anss).concat(refs)
+			uniqued = new Set(doc_keys);
+			const D_ = uniqued.size;
+			for (const word of uniqued) {
+				if (stopword.includes(word)) {
+					continue;
+				}
+				const tf_doc = doc_keys.filter(n => n === word).length;
+				const d_tf_idf_ = (tf_doc / D_) * Math.log(N_ / df_[word]);
+				doc_size += d_tf_idf_ * d_tf_idf_;
+			}
+			doc_size = Math.sqrt(doc_size);
+
+			for (const word of uniqued) {
+				if (stopword.includes(word)) {
+					continue;
+				}
+				let data_ = word in inverted_ ? inverted_[word] : [];
+				data_.push({
+						i: i,
+						D: D_,
+						keys: doc_keys,
+						size: doc_size
+				});
+				inverted_[word] = data_;
+			}
+			//console.log(inverted_);
+
+			dataset_.push({
+					key: keys.concat(refs),
+					ans: anss,
+					num: number_,
+					a: dataset.a[i]
+			});
+		}
+		//console.log(df_);
+		//console.log(dataset_);
+  }
+};
+
+let tokenizer_ = undefined;
+if (!tokenizer_) {
+	builder.build(buildFunction(''));
+}
+
+const analyze = function() {
+	const target = document.getElementById("sentence");
+	if (target) {
+		val = target.value;
+	}
+	if (typeof val === 'string' && val.length > 0) {
+//		let result = builder.build(buildFunction(target.value));
+		if (tokenizer_) {
+	    let path = tokenizer_.tokenize(target.value);
+	    //console.log('path',path);
+	    const outtarget = document.getElementById("output");
+			output = '';
+			for (const element of path) {
+			  output += element.surface_form + ' ' + element.pos + '<br>';
+			}
+	    outtarget.innerHTML = output;
+		}
+	}
+};
+
+const promptapi = async function(info, query) {
+	const availability = await LanguageModel.availability();
+	if (availability == "unavailable") {
+		console.error("LM not found.");
+		return '';
+	} else if (availability == "downloadable" || availability == "downloading") {
+		console.log("LM can be used after downloaded.");
+		return '';
+	} else if  (availability == "available") {
+		console.log("LM is available and can be used.");
+		session = await LanguageModel.create({
+			initialPrompts: [
+				{role: "system", content: "あなたはプログラミング教室の運営者、名前はとくぽん。"},
+				{role: "user", content: "100文字以内で回答してください。" +
+																" (query: " + "こんにちは。" + ")"},
+				{role: "assistant", content: "こんにちは！"},
+				{role: "user", content: "100文字以内で回答してください。" +
+																" (query: " + "お名前は？" + ")"},
+				{role: "assistant", content: "ぼくはとくぽんだよ！ 徳島大学に住んでいます。"},
+				{role: "user", content: "100文字以内で回答してください。" +
+															" (query: " + "毎週開催ですか？" + ", " +
+															" (info:" + "月2回程度（隔週）を予定しています。" + ")"},
+				{role: "assistant", content: "隔週で開催予定だよ！ 月2回程度（隔週）を予定しています。"},
+			],
+			topK: 1,
+			temperature: 0.7
+		});
+		let query_ = '100文字以内で回答してください。' + " (query:" + query;
+		let info_ = info.length > 0 ? (", info:" + info + ")") : ")";
+		console.log(query_ + info_);
+		let result = await session.prompt(query_ + info_);
+		//console.log(result);
+		return result;
+	}
+	return '';
+}
+
+const analyze_slm = async function() {
+	const target = document.getElementById("slmsent");
+	if (target) {
+		val = target.value;
+	}
+	if (typeof val === 'string' && val.length > 0) {
+//		let result = builder.build(buildFunction(target.value));
+		if (LanguageModel) {
+	    console.log("The Prompt API is available.");
+			const result = await promptapi("これはテストです", target.value);
+	    //console.log('path',path);
+	    const outtarget = document.getElementById("slmrep");
+	    outtarget.innerHTML = result;
+		} else {
+	    // The Prompt API is not available.
+	    console.log("The Prompt API is not available.");
+		}
+	}
+};
 
 let timer = null;
 
@@ -537,6 +658,14 @@ const inputted = function() {
 	timer = setTimeout(analyze, 1000);
 };
 
+const slmtest = function() {
+	if (timer != null) {
+		clearTimeout(timer);
+		timer = null;
+	}
+	timer = setTimeout(analyze_slm, 1000);
+}
+
 const input = async function(type, message) {
 	if (typeof message === 'string' && message.length > 0) {
 		if (tokenizer_) {
@@ -547,6 +676,7 @@ const input = async function(type, message) {
 			  //output += element.surface_form + ' ' + element.pos + '<br>';
 				output.push([element.surface_form, element.pos]);
 			}
+			let number = '';
 			let content = '';
 			let response = '';
 			//builder.build(buildFunction(message));
@@ -574,9 +704,12 @@ const input = async function(type, message) {
 				break;
 				case '':
 				{
+					// QA検索
 					let queries = [];
 					let prev = '';
 					// 質問チェック
+					//const startTime = Date.now(); // 開始時間
+					const startTime = window.performance.now(); // 開始時間
 					for (const element of path) {
 					  response += element.surface_form + ' ' + element.pos + '<br>';
 						if (!contentword.includes(element.pos)) {
@@ -597,31 +730,97 @@ const input = async function(type, message) {
 					}
 			    outtarget.innerHTML = response;
 					// 回答検索
-					let answers = new Array(dataset_.length).fill(0);
+					let answers = new Array(N_).fill(0);
+					// 関連語拡張
+					let query_plus = [];
 					for (const word of queries) {
 						if (stopword.includes(word)) {
 							continue;
 						}
+						//let result = [];
 						let result = await nearest(word);
-						//console.log(result);
 						result.unshift(word);
-						for (const word of result) {
-							for (let i = 0; i < dataset_.length; i++) {
-								let key_ = dataset_[i].key;
-								if (key_.includes(word)) {
-									//content += dataset_[i].a;
-									//alert(content);
-									answers[i] += 1 / Math.sqrt(key_.length + 1);
-								}
-								let ans_ = dataset_[i].ans;
-								if (ans_.includes(word)) {
-									//content += dataset_[i].ans;
-									//alert(content);
-									answers[i] += 0.5 / Math.sqrt(ans_.length + 1);
-								}
-							}
-						}
+						query_plus = query_plus.concat(result);
 					}
+					// スコア計算
+					// クエリサイズ
+					let Q_ = query_plus.length;
+					let query_size = 0;
+					query = new Set(query_plus);
+					for (const word of query) {
+						if (!(word in df_)) {
+							continue;
+						}
+						if (stopword.includes(word)) {
+							continue;
+						}
+						const tf_query = query_plus.filter(n => n === word).length;
+						const q_tf_idf_ = (tf_query / Q_) * Math.log(N_ / df_[word]);
+						query_size += q_tf_idf_ * q_tf_idf_;
+					}
+					query_size = Math.sqrt(query_size);
+					// スコア計算
+					query = new Set(query_plus);
+					for (const word of query) {
+						if (stopword.includes(word)) {
+							continue;
+						}
+						// inverted
+						const tf_query = query_plus.filter(n => n === word).length;
+						if (!(word in inverted_)) {
+							continue;
+						}
+						const data_ = inverted_[word];
+						//console.log(word, data_);
+						for (let i = 0; i < data_.length; i++) {
+							const index = data_[i].i;
+							let D_ = data_[i].D;
+							// docサイズ
+							const tf_doc = data_[i].keys.filter(n => n === word).length;
+							const doc_size = data_[i].size;
+							// calc
+							// TF-IDF
+							const q_tf_idf_ = (tf_query / Q_) * Math.log(N_ / df_[word]);
+							const d_tf_idf_ = (tf_doc / D_) * Math.log(N_ / df_[word]);
+							const score_ = (q_tf_idf_ * d_tf_idf_) / (query_size * doc_size);
+							answers[index] +=  score_;
+						}
+						/*
+						for (let i = 0; i < dataset_.length; i++) {
+							let D_ = 0;
+							let tf_doc = 0;
+							// Question
+							D_ += dataset_[i].key.length;
+							let key_ = dataset_[i].key;
+							//if (key_.includes(word)) {
+							const tf_key = key_.filter(n => n === word).length;
+							if (tf_key > 0) {
+								//answers[i] += 1 / Math.sqrt(key_.length + 1);
+								tf_doc += tf_key;
+							}
+							// Answer
+							D_ += dataset_[i].ans.length;
+							let ans_ = dataset_[i].ans;
+							//if (ans_.includes(word)) {
+							const tf_ans = ans_.filter(n => n === word).length;
+							if (tf_ans > 0) {
+								//answers[i] += 0.5 / Math.sqrt(ans_.length + 1);
+								tf_doc += tf_ans;
+							}
+							if (tf_doc > 0) {
+								// TF-IDF
+								//answers[i] +=  tf_query * (1 + Math.log(tf_)) * Math.log(N_ / df_[word]) / (que_size * doc_size);
+								const q_tf_idf_ = (tf_query / Q_) * Math.log(N_ / df_[word]);
+								const d_tf_idf_ = (tf_doc / D_) * Math.log(N_ / df_[word]);
+								const doc_size = dataset_[i].size;
+								const score_ = (q_tf_idf_ * d_tf_idf_) / (query_size * doc_size);
+								answers[i] +=  score_;
+								//console.log(tf_, idf_, tf_ * idf_);
+							}
+						}*/
+					}
+					/*
+					// 最大スコアの回答選択
 					let maxans = [-1, 0];
 					let count = 0;
 					for (let i = 0; i < answers.length; i++) {
@@ -633,10 +832,38 @@ const input = async function(type, message) {
 							maxans[1] = answers[i];
 						}
 					}
-					if (maxans[1] > (count / (answers.length + queries.length))) {
+					//console.log('maxans = ' + maxans[1]);
+					// 回答不可能の対応
+					//if (maxans[1] > (count / (answers.length + queries.length))) {
+					if (maxans[1] > 0) {
 						content = dataset_[maxans[0]].a;
+						number = dataset_[maxans[0]].num;
 					}
-					return [message, content];
+					let maxscore = maxans[1];
+					*/
+					// すべての回答選択
+					let maxscore = 0;
+					let allans = "";
+					for (let i = 0; i < answers.length; i++) {
+						if (answers[i] > 0) {
+							allans += dataset_[i].a + " ";
+						}
+					}
+					if (allans.length > 0) {
+						content = allans;
+						number = -1;
+					}
+					console.log(content);
+					//const endTime = Date.now(); // 終了時間
+					const endTime = window.performance.now(); // 終了時間
+					//console.log(parseFloat(endTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+
+					const content_ = await promptapi(content, message);
+					console.log('info: ' + content,
+											'phi:' + content_);
+					content = content_.length == 0 ? content : content_.replace('\n', '<br>');
+
+					return [message, content, number, parseFloat(endTime - startTime), maxscore];
 				}
 				break;
 				default:

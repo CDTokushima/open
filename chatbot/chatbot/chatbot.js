@@ -591,9 +591,17 @@ const analyze = function() {
 	}
 };
 
+let availability = "null";
+try {
+	availability = LanguageModel.availability();
+} catch (error) {
+	console.error(error);
+}
+
 const promptapi = async function(info, query) {
-	const availability = await LanguageModel.availability();
-	if (availability == "unavailable") {
+	if (availability == null) {
+		return '';
+	}
 		console.error("LM not found.");
 		return '';
 	} else if (availability == "downloadable" || availability == "downloading") {

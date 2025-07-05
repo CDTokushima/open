@@ -607,6 +607,7 @@ const promptapi = async function(info, query) {
 	if (availability == null) {
 		return '';
 	}
+	if (availability == "unavailable") {
 		console.error("LM not found.");
 		return '';
 	} else if (availability == "downloadable" || availability == "downloading") {

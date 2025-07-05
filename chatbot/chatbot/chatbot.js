@@ -89,6 +89,7 @@ class ChatBot {
     };
     const fn2 = () => {
       if (this.#getData('human', humanIds[0]).content === '') {
+        this.#$element.querySelector('.chatbot__input').value = '';
         this.#$element.querySelector('.chatbot__input').disabled = false;
         this.#$element.querySelector('.chatbot__input').dataset.name = this.#getData(
           'human',
@@ -164,7 +165,7 @@ class ChatBot {
       this.#fields[humanField] = content[0];
 			if (content[1] !== '') {
 				this.#fields['answer'] = content[1];
-				this.#botId = 99;
+				this.#botId = 100;//99;
 			}
       this.#addToChatHumanResponse(humanContent);
       this.#outputContent(this.#delay);
@@ -368,9 +369,7 @@ const url = 'https://tokushimauniv.webhook.office.com/webhookb2/867d3b8b-a2f9-4b
 // 4 - Data description that defines the dialog script for the chatbot
 const data = {
   bot: {
-    0: {
-      content: 'こんにちは！とくぽんAI塾です。何かご質問はありますか？', human: [0, 1, 2]
-    },
+    0: { content: 'こんにちは！とくぽんAI塾です。何かご質問はありますか？', human: [0, 1, 2] },
     1: { content: 'そうなんですね。あなたのお名前は？', human: [3] },
     2: { content: 'あなたのお名前は？', human: [3] },
     3: { content: '{{name}}さん, 興味のあることは何ですか？', human: [4, 5] },
@@ -386,6 +385,7 @@ const data = {
 		13: { content: 'こちらに<a href="mailto:kygakujc＠tokushima-u.ac.jp">メール</a>でお問い合わせください。', human: [6] },
 		14: { content: 'こちらから<a href="https://www.tokushima-u.ac.jp/ai/asks/" target="_blank">Webフォーム</a>でお問い合わせください。', human: [6] },
     99: { content: '回答はこちら <br><br><div class="box">{{answer}}</div> <br>他に何か質問はありますか？', human: [4, 5] },
+    100: { content: '回答はこちら <br><br><div class="box">{{answer}}</div> <br>他に何か質問はありますか？', human: [100] },
   },
   human: {
     0: { content: '質問したいことがあります。', bot: 1 },
@@ -401,6 +401,7 @@ const data = {
     10: { content: '', bot: 9, name: 'contact' },
     11: { content: '', bot: 11, name: 'name' },
     12: { content: 'Webフォーム', bot: 14 },
+    100: { content: '', bot: 100, name: '' },
   }
 }
 // adding a fingerprint hash to localstorage

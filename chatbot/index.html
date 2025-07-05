@@ -35,6 +35,12 @@
 	  h1 {
 	    text-align: center;
 	  }
+
+	  .hedding {
+	    text-align: center;
+	    color: #3498db; /* Text color (blue) */
+	    font-size: 12px; /* Text size */
+	  }
   </style>
   <link rel="stylesheet" href="./chatbot/chatbot.css">
 </head>
@@ -42,6 +48,10 @@
 <body>
 
   <h1>Simple Chatbot</h1>
+
+<p class="hedding">
+	このページで試験運用中のChatBotは <a href="https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api" target="_blank">Prompt API</a> に対応しています。
+</p>
 
 <p style="vertical-align:top;">
 Q: <span class="q">兄弟で参加できますか？</span><span class="r" hidden>いいですか？</span><br />
@@ -119,10 +129,10 @@ A: <span class="a">必要に応じてパソコンの貸し出しを行います�
   <!-- word2vec JS -->
   <script src="./chatbot/word2vec.js"></script>
 
-	<input id="sentence" maxlength="100" oninput="inputted();" size="30" type="text" />
-	<div id="output">&nbsp;</div>
+	<input id="sentence" maxlength="100" oninput="inputted();" size="30" type="text"　hidden/>
+	<div id="output"　hidden>&nbsp;</div>
 
-	<table hidden="">
+	<table hidden>
 		<tbody>
 			<tr>
 				<td>

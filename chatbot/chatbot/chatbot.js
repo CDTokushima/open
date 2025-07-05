@@ -591,12 +591,17 @@ const analyze = function() {
 	}
 };
 
-let availability = "null";
-try {
-	availability = LanguageModel.availability();
-} catch (error) {
-	console.error(error);
+
+let availability = null;
+
+const check_availability = async function() {
+	try {
+		availability = await LanguageModel.availability();
+	} catch (error) {
+		console.error(error);
+	}
 }
+check_availability();
 
 const promptapi = async function(info, query) {
 	if (availability == null) {

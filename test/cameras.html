@@ -1,0 +1,69 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body>
+	<video id='video' width="240" height="240" autoplay muted playsinline></video><br>
+	<button onclick="start()" style="width:200px;height:40px;">switch</button>
+
+	<script>
+
+	async function setupCamera(cameraId) {
+	  const stream = await navigator.mediaDevices.getUserMedia({
+		  video: { deviceId: String(cameraId) },
+		});
+		const video = document.getElementById('video');
+	  video.srcObject = stream;
+	  return new Promise((resolve) => {
+	    video.onloadedmetadata = () => {
+	      video.width = video.videoWidth / 3;
+	      video.height = video.videoHeight / 3;
+				resolve();
+	    };
+	  });
+	}
+
+	let selectIndex = 0;
+
+	async function start(){
+	  const deviceInfos = await navigator.mediaDevices.enumerateDevices();
+		let deviceIds = [];
+		deviceInfos.forEach(deviceInfo=>{
+			console.log(deviceInfo.kind, deviceInfo.label, deviceInfo.deviceId);
+			if (deviceInfo.kind == "videoinput") {
+				deviceIds.push(deviceInfo.deviceId);
+			}
+			console.log(deviceIds.length + ' ' + deviceIds);
+		})
+		//const constraints = await navigator.mediaDevices.getSupportedConstraints();
+		//for (const [key, value] of Object.entries(constraints)) {
+	  //  console.log(`${key}: ${value}`);
+	  //}
+	  navigator.mediaDevices.ondevicechange = function(event) {
+	    console.log("ondevicechange", event)
+	  }
+		let index = selectIndex % deviceIds.length;
+		console.log('index = ' + index);
+	  await setupCamera(deviceIds[index]);
+		selectIndex += 1;
+	}
+
+	window.addEventListener('load', async ()=>{
+	  if(!navigator.permissions || !navigator.permissions.query){
+	    console.log("this browser doesn't have permission API", navigator.userAgent)
+	  }
+	  if(!navigator.mediaDevices.getDisplayMedia){
+	    console.log("this browser doesn't have getDisplayMedia", navigator.userAgent)
+	  }
+		const deviceInfos = await navigator.mediaDevices.enumerateDevices();
+		deviceInfos.forEach(deviceInfo=>{
+			//console.log(deviceInfo.kind, deviceInfo.label, deviceInfo.deviceId);
+			console.log(deviceInfo.kind, deviceInfo.label, deviceInfo);
+		})
+	});
+	start();
+
+	</script>
+</body>
+</html>

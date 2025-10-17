@@ -875,7 +875,7 @@ const input = async function(type, message) {
 
 					const content_ = await promptapi(content, message);
 					console.log('info: ' + content,
-											'phi:' + content_);
+											'llm:' + content_);
 					content = content_.length == 0 ? content : content_.replace('\n', '<br>');
 
 					return [message, content, number, parseFloat(endTime - startTime), maxscore];

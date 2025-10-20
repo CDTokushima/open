@@ -683,8 +683,12 @@ const slmtest = function() {
 
 const input = async function(type, message) {
 	if (typeof message === 'string' && message.length > 0) {
+		//const startTime = Date.now(); // 開始時間
+		const startTime = window.performance.now(); // 開始時間
+		
 		if (tokenizer_) {
 	    let path = tokenizer_.tokenize(message);
+
 	    const outtarget = document.getElementById("output");
 			let output = [];
 			for (const element of path) {
@@ -723,27 +727,29 @@ const input = async function(type, message) {
 					let queries = [];
 					let prev = '';
 					// 質問チェック
-					//const startTime = Date.now(); // 開始時間
-					const startTime = window.performance.now(); // 開始時間
 					for (const element of path) {
-					  response += element.surface_form + ' ' + element.pos + '<br>';
+						response += element.surface_form + ' ' + element.pos + '<br>';
 						if (!contentword.includes(element.pos)) {
 							prev = '';
 							continue;
 						}
 						if (prev.length > 0) {
- 							prev += element.surface_form;
-					  	queries.push(toHalfWidth(prev.toLowerCase()));
+							prev += element.surface_form;
+							queries.push(toHalfWidth(prev.toLowerCase()));
 						} else {
- 							prev += element.surface_form;
+							prev += element.surface_form;
 						}
-				  	queries.push(toHalfWidth(element.surface_form.toLowerCase()));
+						queries.push(toHalfWidth(element.surface_form.toLowerCase()));
 						if (element.word_type !== "UNKNOWN" && basicword.includes(element.pos)) {
 							queries.push(toHalfWidth(element.basic_form.toLowerCase()));
 							queries.push(toHalfWidth(element.pronunciation));
 						}
 					}
-			    outtarget.innerHTML = response;
+				    outtarget.innerHTML = response;
+
+					const nlpTime = window.performance.now(); // 終了時間
+					console.log('NLP', parseFloat(nlpTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					
 					// 回答検索
 					let answers = new Array(N_).fill(0);
 					// 関連語拡張
@@ -757,6 +763,10 @@ const input = async function(type, message) {
 						result.unshift(word);
 						query_plus = query_plus.concat(result);
 					}
+
+					const vecTime = window.performance.now(); // 終了時間
+					console.log('VEC', parseFloat(vecTime - nlpTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					
 					// スコア計算
 					// クエリサイズ
 					let Q_ = query_plus.length;
@@ -800,62 +810,8 @@ const input = async function(type, message) {
 							const score_ = (q_tf_idf_ * d_tf_idf_) / (query_size * doc_size);
 							answers[index] +=  score_;
 						}
-						/*
-						for (let i = 0; i < dataset_.length; i++) {
-							let D_ = 0;
-							let tf_doc = 0;
-							// Question
-							D_ += dataset_[i].key.length;
-							let key_ = dataset_[i].key;
-							//if (key_.includes(word)) {
-							const tf_key = key_.filter(n => n === word).length;
-							if (tf_key > 0) {
-								//answers[i] += 1 / Math.sqrt(key_.length + 1);
-								tf_doc += tf_key;
-							}
-							// Answer
-							D_ += dataset_[i].ans.length;
-							let ans_ = dataset_[i].ans;
-							//if (ans_.includes(word)) {
-							const tf_ans = ans_.filter(n => n === word).length;
-							if (tf_ans > 0) {
-								//answers[i] += 0.5 / Math.sqrt(ans_.length + 1);
-								tf_doc += tf_ans;
-							}
-							if (tf_doc > 0) {
-								// TF-IDF
-								//answers[i] +=  tf_query * (1 + Math.log(tf_)) * Math.log(N_ / df_[word]) / (que_size * doc_size);
-								const q_tf_idf_ = (tf_query / Q_) * Math.log(N_ / df_[word]);
-								const d_tf_idf_ = (tf_doc / D_) * Math.log(N_ / df_[word]);
-								const doc_size = dataset_[i].size;
-								const score_ = (q_tf_idf_ * d_tf_idf_) / (query_size * doc_size);
-								answers[i] +=  score_;
-								//console.log(tf_, idf_, tf_ * idf_);
-							}
-						}*/
 					}
-					/*
-					// 最大スコアの回答選択
-					let maxans = [-1, 0];
-					let count = 0;
-					for (let i = 0; i < answers.length; i++) {
-						if (answers[i] > 0) {
-							count++;
-						}
-						if (answers[i] > maxans[1]) {
-							maxans[0] = i;
-							maxans[1] = answers[i];
-						}
-					}
-					//console.log('maxans = ' + maxans[1]);
-					// 回答不可能の対応
-					//if (maxans[1] > (count / (answers.length + queries.length))) {
-					if (maxans[1] > 0) {
-						content = dataset_[maxans[0]].a;
-						number = dataset_[maxans[0]].num;
-					}
-					let maxscore = maxans[1];
-					*/
+
 					// すべての回答選択
 					let maxscore = 0;
 					let allans = "";
@@ -868,16 +824,24 @@ const input = async function(type, message) {
 						content = allans;
 						number = -1;
 					}
+					
 					console.log(content);
+					
 					//const endTime = Date.now(); // 終了時間
-					const endTime = window.performance.now(); // 終了時間
-					//console.log(parseFloat(endTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					const ragTime = window.performance.now(); // 終了時間
+					console.log('RAG', parseFloat(ragTime - vecTime), maxans[1]); // 何ミリ秒かかったかを表示する
 
 					const content_ = await promptapi(content, message);
 					console.log('info: ' + content,
-											'phi:' + content_);
+											'slm:' + content_);
 					content = content_.length == 0 ? content : content_.replace('\n', '<br>');
 
+					const slmTime = window.performance.now(); // 終了時間
+					console.log('SLM', parseFloat(slmTime - ragTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					
+					const endTime = window.performance.now(); // 終了時間
+					console.log('total', parseFloat(endTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					
 					return [message, content, number, parseFloat(endTime - startTime), maxscore];
 				}
 				break;

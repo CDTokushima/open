@@ -748,7 +748,7 @@ const input = async function(type, message) {
 				    outtarget.innerHTML = response;
 
 					const nlpTime = window.performance.now(); // 終了時間
-					console.log('NLP', parseFloat(nlpTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					console.log('NLP', parseFloat(nlpTime - startTime)); // 何ミリ秒かかったかを表示する
 					
 					// 回答検索
 					let answers = new Array(N_).fill(0);
@@ -765,7 +765,7 @@ const input = async function(type, message) {
 					}
 
 					const vecTime = window.performance.now(); // 終了時間
-					console.log('VEC', parseFloat(vecTime - nlpTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					console.log('VEC', parseFloat(vecTime - nlpTime)); // 何ミリ秒かかったかを表示する
 					
 					// スコア計算
 					// クエリサイズ
@@ -829,7 +829,7 @@ const input = async function(type, message) {
 					
 					//const endTime = Date.now(); // 終了時間
 					const ragTime = window.performance.now(); // 終了時間
-					console.log('RAG', parseFloat(ragTime - vecTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					console.log('RAG', parseFloat(ragTime - vecTime)); // 何ミリ秒かかったかを表示する
 
 					const content_ = await promptapi(content, message);
 					console.log('info: ' + content,
@@ -837,10 +837,10 @@ const input = async function(type, message) {
 					content = content_.length == 0 ? content : content_.replace('\n', '<br>');
 
 					const slmTime = window.performance.now(); // 終了時間
-					console.log('SLM', parseFloat(slmTime - ragTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					console.log('SLM', parseFloat(slmTime - ragTime)); // 何ミリ秒かかったかを表示する
 					
 					const endTime = window.performance.now(); // 終了時間
-					console.log('total', parseFloat(endTime - startTime), maxans[1]); // 何ミリ秒かかったかを表示する
+					console.log('total', parseFloat(endTime - startTime)); // 何ミリ秒かかったかを表示する
 					
 					return [message, content, number, parseFloat(endTime - startTime), maxscore];
 				}

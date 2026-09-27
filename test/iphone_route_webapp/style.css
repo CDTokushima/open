@@ -117,3 +117,14 @@ button:disabled {
     min-height: 360px;
   }
 }
+
+
+/* 現在地マーカー */
+.current-position-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #147efb;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px rgba(20, 126, 251, 0.35);
+}

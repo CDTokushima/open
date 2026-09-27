@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>かんたんルートナビ</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQ3ynhZw7Bfy5BIVqAq7oJ1THQj6gQ="
+    crossorigin=""
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header>
+    <h1>かんたんルートナビ</h1>
+    <p>現在地を取得し、地図をタップして目的地を指定します。</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <button id="locationButton">① 現在地を取得</button>
+      <button id="routeButton" disabled>② 徒歩ルートを検索</button>
+      <button id="appleMapsButton" disabled>③ Apple Mapsで案内</button>
+      <button id="clearButton">クリア</button>
+    </section>
+
+    <section class="status-card">
+      <div><strong>状態:</strong> <span id="status">現在地を取得してください。</span></div>
+      <div><strong>現在地:</strong> <span id="currentLocation">未取得</span></div>
+      <div><strong>目的地:</strong> <span id="destination">未指定</span></div>
+      <div><strong>距離:</strong> <span id="distance">-</span></div>
+      <div><strong>所要時間:</strong> <span id="duration">-</span></div>
+    </section>
+
+    <div id="map"></div>
+
+    <p class="hint">
+      現在地を取得したあと、地図上の目的地をタップしてください。
+    </p>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -50,16 +50,12 @@ button {
   padding: 10px 12px;
   font-size: 15px;
   font-weight: 600;
-  background: #ffffff;
+  background: #fff;
   box-shadow: 0 1px 5px rgba(0,0,0,0.12);
 }
 
 button:disabled {
   opacity: 0.45;
-}
-
-button:active {
-  transform: scale(0.98);
 }
 
 .status-card {
@@ -76,9 +72,33 @@ button:active {
   width: 100%;
   height: 60vh;
   min-height: 420px;
+  position: relative;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 1px 8px rgba(0,0,0,0.12);
+}
+
+/*
+  重要:
+  サイト全体の img { width:100%; max-width:100%; } 等が
+  Leafletの地図タイルへ適用されると地図が崩れるため、
+  Leaflet内部の画像スタイルを明示的に保護する。
+*/
+.leaflet-container img,
+.leaflet-container .leaflet-tile,
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-marker-shadow {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-tile {
+  width: 256px !important;
+  height: 256px !important;
+}
+
+.leaflet-container {
+  font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
 }
 
 .hint {

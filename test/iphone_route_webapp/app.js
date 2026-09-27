@@ -1,6 +1,6 @@
 const DEFAULT_CENTER = [34.0703, 134.5548];
 const DEFAULT_ZOOM = 13;
-const OSRM_BASE_URL = "https://router.project-osrm.org";
+const OSRM_BASE_URL = "https://routing.openstreetmap.de/routed-bike";
 
 const map = L.map("map", {
   zoomControl: true
@@ -11,11 +11,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   tileSize: 256,
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
-
-// CSS適用や画面サイズ確定後にLeafletへ再計算させる
-window.addEventListener("load", () => {
-  setTimeout(() => map.invalidateSize(true), 100);
-});
 
 window.addEventListener("resize", () => {
   map.invalidateSize(false);
@@ -38,7 +33,7 @@ const destinationText = document.getElementById("destination");
 const distanceText = document.getElementById("distance");
 const durationText = document.getElementById("duration");
 
-locationButton.addEventListener("click", () => {
+function getCurrentLocation() {
   if (!navigator.geolocation) {
     setStatus("このブラウザは位置情報取得に対応していません。");
     return;
@@ -86,6 +81,16 @@ locationButton.addEventListener("click", () => {
       maximumAge: 5000
     }
   );
+}
+
+locationButton.addEventListener("click", getCurrentLocation);
+
+// ページを表示したらすぐ現在地を取得する
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    map.invalidateSize(true);
+    getCurrentLocation();
+  }, 100);
 });
 
 map.on("click", event => {
@@ -126,11 +131,12 @@ routeButton.addEventListener("click", async () => {
     return;
   }
 
-  setStatus("ルートを検索しています...");
+  setStatus("自転車ルートを検索しています...");
 
   const start = `${currentPosition.lon},${currentPosition.lat}`;
   const goal = `${destinationPosition.lon},${destinationPosition.lat}`;
 
+  // routing.openstreetmap.de の自転車向けOSRMプロファイルを使用
   const url =
     `${OSRM_BASE_URL}/route/v1/driving/${start};${goal}` +
     `?overview=full&geometries=geojson&steps=true`;
@@ -164,7 +170,7 @@ routeButton.addEventListener("click", async () => {
 
     distanceText.textContent = formatDistance(route.distance);
     durationText.textContent = formatDuration(route.duration);
-    setStatus("ルートを表示しました。");
+    setStatus("自転車ルートを表示しました。");
 
   } catch (error) {
     console.error(error);

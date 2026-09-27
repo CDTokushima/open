@@ -22,13 +22,13 @@
   <main>
     <section class="controls">
       <button id="locationButton">① 現在地を取得</button>
-      <button id="routeButton" disabled>② ルートを検索</button>
+      <button id="routeButton" disabled>② 自転車ルートを検索</button>
       <button id="appleMapsButton" disabled>③ Apple Mapsで案内</button>
       <button id="clearButton">クリア</button>
     </section>
 
     <section class="status-card">
-      <div><strong>状態:</strong> <span id="status">現在地を取得してください。</span></div>
+      <div><strong>状態:</strong> <span id="status">現在地を取得しています...</span></div>
       <div><strong>現在地:</strong> <span id="currentLocation">未取得</span></div>
       <div><strong>目的地:</strong> <span id="destination">未指定</span></div>
       <div><strong>距離:</strong> <span id="distance">-</span></div>
@@ -38,7 +38,7 @@
     <div id="map"></div>
 
     <p class="hint">
-      現在地を取得したあと、地図上の目的地をタップしてください。
+      現在地は自動取得します。地図上の目的地をタップしてください。
     </p>
   </main>
 

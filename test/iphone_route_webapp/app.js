@@ -10,6 +10,9 @@ const REROUTE_THRESHOLD_METERS = 30;
 // GPSが頻繁に更新されてもAPIを連打しないための待ち時間
 const REROUTE_COOLDOWN_MS = 15000;
 
+// 目的地から何m以内で到着と判定するか
+const GOAL_THRESHOLD_METERS = 20;
+
 const map = L.map("map", {
   zoomControl: true
 }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
@@ -42,6 +45,10 @@ let firstLocationFix = true;
 let rerouteInProgress = false;
 let lastRerouteAt = 0;
 
+let goalReached = false;
+let goalTimer = null;
+let audioContext = null;
+
 const locationButton = document.getElementById("locationButton");
 const routeButton = document.getElementById("routeButton");
 const appleMapsButton = document.getElementById("appleMapsButton");
@@ -54,6 +61,8 @@ const accuracyText = document.getElementById("accuracy");
 const destinationText = document.getElementById("destination");
 const distanceText = document.getElementById("distance");
 const durationText = document.getElementById("duration");
+const goalOverlay = document.getElementById("goalOverlay");
+const confettiLayer = document.getElementById("confettiLayer");
 
 const currentPositionIcon = L.divIcon({
   className: "",
@@ -132,8 +141,23 @@ async function handleLocationUpdate(position) {
     });
   }
 
-  // ルートが表示されている場合だけ逸脱距離を確認
+  // 目的地から20m以内に入ったら一度だけゴール演出
+  if (destinationPosition && !goalReached) {
+    const distanceToGoal = haversineDistanceMeters(
+      lat, lon, destinationPosition.lat, destinationPosition.lon
+    );
+
+    if (distanceToGoal <= GOAL_THRESHOLD_METERS) {
+      goalReached = true;
+      showGoalCelebration();
+      setStatus(`ゴール！ 目的地まで約${Math.round(distanceToGoal)}mです。`);
+      return;
+    }
+  }
+
+  // ゴール後はルート逸脱による再検索を行わない
   if (
+    !goalReached &&
     destinationPosition &&
     currentRouteCoordinates.length >= 2 &&
     !rerouteInProgress
@@ -216,6 +240,9 @@ map.on("click", event => {
     lat,
     lon: lng
   };
+
+  goalReached = false;
+  hideGoalCelebration();
 
   if (destinationMarker) {
     map.removeLayer(destinationMarker);
@@ -365,6 +392,8 @@ appleMapsButton.addEventListener("click", () => {
 clearButton.addEventListener("click", () => {
   destinationPosition = null;
   currentRouteCoordinates = [];
+  goalReached = false;
+  hideGoalCelebration();
 
   if (destinationMarker) {
     map.removeLayer(destinationMarker);
@@ -419,7 +448,7 @@ function formatDuration(seconds) {
   return `約${hours}時間${restMinutes}分`;
 }
 
-/*
+function haversineDistanceMeters(lat1, lon1, lat2, lon2) {\n  const R = 6371000;\n  const toRad = degrees => degrees * Math.PI / 180;\n  const phi1 = toRad(lat1), phi2 = toRad(lat2);\n  const dPhi = toRad(lat2-lat1), dLambda = toRad(lon2-lon1);\n  const a = Math.sin(dPhi/2)**2 + Math.cos(phi1)*Math.cos(phi2)*Math.sin(dLambda/2)**2;\n  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n}\n\nfunction showGoalCelebration() {\n  goalOverlay.classList.add("show");\n  goalOverlay.setAttribute("aria-hidden", "false");\n  createConfetti();\n  playGoalSound();\n  if (goalTimer) clearTimeout(goalTimer);\n  goalTimer = setTimeout(hideGoalCelebration, 5000);\n}\n\nfunction hideGoalCelebration() {\n  if (goalTimer) { clearTimeout(goalTimer); goalTimer = null; }\n  goalOverlay.classList.remove("show");\n  goalOverlay.setAttribute("aria-hidden", "true");\n  confettiLayer.innerHTML = "";\n}\n\nfunction createConfetti() {\n  confettiLayer.innerHTML = "";\n  const colors=["#ff3b30","#ff9500","#ffcc00","#34c759","#007aff","#5856d6","#af52de"];\n  for (let i=0;i<90;i++) {\n    const piece=document.createElement("span");\n    piece.className="confetti-piece";\n    const angle=Math.random()*Math.PI*2;\n    const distance=180+Math.random()*520;\n    piece.style.setProperty("--x", `${Math.cos(angle)*distance}px`);\n    piece.style.setProperty("--y", `${Math.sin(angle)*distance+120}px`);\n    piece.style.setProperty("--r", `${Math.random()*1080-540}deg`);\n    piece.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)];\n    piece.style.animationDelay=`${Math.random()*.18}s`;\n    confettiLayer.appendChild(piece);\n  }\n}\n\nfunction prepareAudio() {\n  try {\n    if (!audioContext) {\n      const C=window.AudioContext||window.webkitAudioContext;\n      if (C) audioContext=new C();\n    }\n    if (audioContext && audioContext.state === "suspended") audioContext.resume();\n  } catch(e) { console.warn("Audio init failed", e); }\n}\n\nfunction playGoalSound() {\n  if (!audioContext) return;\n  try {\n    const now=audioContext.currentTime;\n    const n=Math.floor(audioContext.sampleRate*.18);\n    const buffer=audioContext.createBuffer(1,n,audioContext.sampleRate);\n    const data=buffer.getChannelData(0);\n    for (let i=0;i<n;i++) { const d=1-i/n; data[i]=(Math.random()*2-1)*d*d; }\n    const source=audioContext.createBufferSource();\n    source.buffer=buffer;\n    const gain=audioContext.createGain();\n    gain.gain.setValueAtTime(.45,now);\n    gain.gain.exponentialRampToValueAtTime(.001,now+.18);\n    source.connect(gain); gain.connect(audioContext.destination);\n    source.start(now); source.stop(now+.2);\n  } catch(e) { console.warn("Goal sound failed", e); }\n}\n\ndocument.addEventListener("pointerdown", prepareAudio, {once:true});\n\n/*
  * 現在位置からルート折れ線までの最短距離を求める。
  *
  * lat, lon:

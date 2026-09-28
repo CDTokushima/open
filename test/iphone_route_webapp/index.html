@@ -42,6 +42,16 @@
     <p class="hint">
       現在地は自動で継続更新します。地図上の目的地をタップしてください。
     </p>
+
+    <div id="goalOverlay" class="goal-overlay" aria-live="assertive" aria-hidden="true">
+      <div class="goal-message">
+        <div class="goal-burst">🎉</div>
+        <div class="goal-title">ゴール！</div>
+        <div class="goal-subtitle">目的地に到着しました</div>
+      </div>
+      <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+    </div>
+
   </main>
 
   <script

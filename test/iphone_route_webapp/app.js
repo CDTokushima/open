@@ -28,7 +28,8 @@ window.addEventListener("resize", () => {
 });
 
 window.addEventListener("orientationchange", () => {
-  setTimeout(() => map.invalidateSize(true), 250);
+  setTimeout(() => map.invalidateSize(true), 150);
+  setTimeout(() => map.invalidateSize(true), 500);
 });
 
 let currentPosition = null;
@@ -716,3 +717,12 @@ window.addEventListener("pagehide", () => {
 });
 
 updateButtons();
+
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+      console.warn("Service Worker registration failed:", error);
+    });
+  });
+}

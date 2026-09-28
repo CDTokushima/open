@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>かんたん自転車ナビ</title>
+  <meta name="theme-color" content="#f5f5f7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="自転車ナビ" />
+  <link rel="manifest" href="manifest.webmanifest" />
 
   <link
     rel="stylesheet"
@@ -19,18 +24,20 @@
       <div id="map"></div>
     </section>
 
-    <section class="status-card">
-      <div><strong>状態:</strong> <span id="status">現在地を取得しています...</span></div>
-      <div><strong>現在地:</strong> <span id="currentLocation">取得中...</span></div>
-      <div><strong>GPS精度:</strong> <span id="accuracy">-</span></div>
-      <div><strong>目的地:</strong> <span id="destination">未指定</span></div>
-      <div><strong>距離:</strong> <span id="distance">-</span></div>
-      <div><strong>所要時間:</strong> <span id="duration">-</span></div>
-    </section>
+    <div class="info-panel">
+      <section class="status-card">
+        <div><strong>状態:</strong> <span id="status">現在地を取得しています...</span></div>
+        <div><strong>現在地:</strong> <span id="currentLocation">取得中...</span></div>
+        <div><strong>GPS精度:</strong> <span id="accuracy">-</span></div>
+        <div><strong>目的地:</strong> <span id="destination">未指定</span></div>
+        <div><strong>距離:</strong> <span id="distance">-</span></div>
+        <div><strong>所要時間:</strong> <span id="duration">-</span></div>
+      </section>
 
-    <p class="hint">
-      地図上の目的地をタップしてください。現在地は自動で継続更新します。
-    </p>
+      <p class="hint">
+        地図上の目的地をタップしてください。現在地は自動で継続更新します。
+      </p>
+    </div>
 
     <div class="bottom-spacer" aria-hidden="true"></div>
 

@@ -41,7 +41,6 @@ let rerouteInProgress = false;
 let lastRerouteAt = 0;
 
 let goalReached = false;
-let goalTimer = null;
 let audioContext = null;
 
 const locationButton = document.getElementById("locationButton");
@@ -140,9 +139,11 @@ async function handleLocationUpdate(position) {
     map.setView([lat, lon], 17);
     firstLocationFix = false;
   } else if (followCurrentPosition) {
+    // GPS更新のたびに現在位置を地図中央へ移動
     map.panTo([lat, lon], {
       animate: true,
-      duration: 0.35
+      duration: 0.35,
+      easeLinearity: 0.25
     });
   }
 
@@ -351,16 +352,31 @@ async function searchRoute(isAutomatic = false) {
       formatDuration(route.duration);
 
     if (isAutomatic) {
-      setStatus("ルートを自動再検索しました。");
+      followCurrentPosition = true;
+      followButton.textContent = "追従：ON";
+
+      if (currentPosition) {
+        map.panTo(
+          [currentPosition.lat, currentPosition.lon],
+          { animate: true, duration: 0.35 }
+        );
+      }
+
+      setStatus("ルートを自動再検索しました。現在地を追従します。");
     } else {
-      map.fitBounds(routeLine.getBounds(), {
-        padding: [30, 30]
-      });
+      // ルート検索後も現在位置追従を維持する。
+      // ルート全体表示は行わず、現在位置を中心にしたまま走行する。
+      followCurrentPosition = true;
+      followButton.textContent = "追従：ON";
 
-      followCurrentPosition = false;
-      followButton.textContent = "追従：OFF";
+      if (currentPosition) {
+        map.setView(
+          [currentPosition.lat, currentPosition.lon],
+          Math.max(map.getZoom(), 16)
+        );
+      }
 
-      setStatus("自転車ルートを表示しました。");
+      setStatus("自転車ルートを表示しました。現在地を追従します。");
     }
 
   } catch (error) {
@@ -533,22 +549,9 @@ function showGoalCelebration() {
 
   createConfetti();
   playGoalSound();
-
-  if (goalTimer) {
-    clearTimeout(goalTimer);
-  }
-
-  goalTimer = setTimeout(() => {
-    hideGoalCelebration();
-  }, 5000);
 }
 
 function hideGoalCelebration() {
-  if (goalTimer) {
-    clearTimeout(goalTimer);
-    goalTimer = null;
-  }
-
   goalOverlay.classList.remove("show");
   goalOverlay.setAttribute("aria-hidden", "true");
   confettiLayer.innerHTML = "";
@@ -664,6 +667,12 @@ document.addEventListener(
   prepareAudio,
   { once: true }
 );
+
+goalOverlay.addEventListener("click", () => {
+  if (goalOverlay.classList.contains("show")) {
+    hideGoalCelebration();
+  }
+});
 
 window.addEventListener("load", () => {
   setTimeout(() => {

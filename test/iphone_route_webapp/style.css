@@ -157,7 +157,8 @@ main {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   background: rgba(255,255,255,0.18);
 }
 

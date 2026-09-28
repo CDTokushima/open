@@ -144,7 +144,10 @@ async function handleLocationUpdate(position) {
   // 目的地から20m以内に入ったら一度だけゴール演出
   if (destinationPosition && !goalReached) {
     const distanceToGoal = haversineDistanceMeters(
-      lat, lon, destinationPosition.lat, destinationPosition.lon
+      lat,
+      lon,
+      destinationPosition.lat,
+      destinationPosition.lon
     );
 
     if (distanceToGoal <= GOAL_THRESHOLD_METERS) {
@@ -155,7 +158,7 @@ async function handleLocationUpdate(position) {
     }
   }
 
-  // ゴール後はルート逸脱による再検索を行わない
+  // ゴール後はルート逸脱による自動再検索を行わない
   if (
     !goalReached &&
     destinationPosition &&
@@ -448,7 +451,164 @@ function formatDuration(seconds) {
   return `約${hours}時間${restMinutes}分`;
 }
 
-function haversineDistanceMeters(lat1, lon1, lat2, lon2) {\n  const R = 6371000;\n  const toRad = degrees => degrees * Math.PI / 180;\n  const phi1 = toRad(lat1), phi2 = toRad(lat2);\n  const dPhi = toRad(lat2-lat1), dLambda = toRad(lon2-lon1);\n  const a = Math.sin(dPhi/2)**2 + Math.cos(phi1)*Math.cos(phi2)*Math.sin(dLambda/2)**2;\n  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n}\n\nfunction showGoalCelebration() {\n  goalOverlay.classList.add("show");\n  goalOverlay.setAttribute("aria-hidden", "false");\n  createConfetti();\n  playGoalSound();\n  if (goalTimer) clearTimeout(goalTimer);\n  goalTimer = setTimeout(hideGoalCelebration, 5000);\n}\n\nfunction hideGoalCelebration() {\n  if (goalTimer) { clearTimeout(goalTimer); goalTimer = null; }\n  goalOverlay.classList.remove("show");\n  goalOverlay.setAttribute("aria-hidden", "true");\n  confettiLayer.innerHTML = "";\n}\n\nfunction createConfetti() {\n  confettiLayer.innerHTML = "";\n  const colors=["#ff3b30","#ff9500","#ffcc00","#34c759","#007aff","#5856d6","#af52de"];\n  for (let i=0;i<90;i++) {\n    const piece=document.createElement("span");\n    piece.className="confetti-piece";\n    const angle=Math.random()*Math.PI*2;\n    const distance=180+Math.random()*520;\n    piece.style.setProperty("--x", `${Math.cos(angle)*distance}px`);\n    piece.style.setProperty("--y", `${Math.sin(angle)*distance+120}px`);\n    piece.style.setProperty("--r", `${Math.random()*1080-540}deg`);\n    piece.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)];\n    piece.style.animationDelay=`${Math.random()*.18}s`;\n    confettiLayer.appendChild(piece);\n  }\n}\n\nfunction prepareAudio() {\n  try {\n    if (!audioContext) {\n      const C=window.AudioContext||window.webkitAudioContext;\n      if (C) audioContext=new C();\n    }\n    if (audioContext && audioContext.state === "suspended") audioContext.resume();\n  } catch(e) { console.warn("Audio init failed", e); }\n}\n\nfunction playGoalSound() {\n  if (!audioContext) return;\n  try {\n    const now=audioContext.currentTime;\n    const n=Math.floor(audioContext.sampleRate*.18);\n    const buffer=audioContext.createBuffer(1,n,audioContext.sampleRate);\n    const data=buffer.getChannelData(0);\n    for (let i=0;i<n;i++) { const d=1-i/n; data[i]=(Math.random()*2-1)*d*d; }\n    const source=audioContext.createBufferSource();\n    source.buffer=buffer;\n    const gain=audioContext.createGain();\n    gain.gain.setValueAtTime(.45,now);\n    gain.gain.exponentialRampToValueAtTime(.001,now+.18);\n    source.connect(gain); gain.connect(audioContext.destination);\n    source.start(now); source.stop(now+.2);\n  } catch(e) { console.warn("Goal sound failed", e); }\n}\n\ndocument.addEventListener("pointerdown", prepareAudio, {once:true});\n\n/*
+
+function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = degrees => degrees * Math.PI / 180;
+
+  const phi1 = toRad(lat1);
+  const phi2 = toRad(lat2);
+  const deltaPhi = toRad(lat2 - lat1);
+  const deltaLambda = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(deltaPhi / 2) ** 2 +
+    Math.cos(phi1) *
+    Math.cos(phi2) *
+    Math.sin(deltaLambda / 2) ** 2;
+
+  const c =
+    2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+function showGoalCelebration() {
+  if (!goalOverlay || !confettiLayer) return;
+
+  goalOverlay.classList.add("show");
+  goalOverlay.setAttribute("aria-hidden", "false");
+
+  createConfetti();
+  playGoalSound();
+
+  if (goalTimer) {
+    clearTimeout(goalTimer);
+  }
+
+  goalTimer = setTimeout(() => {
+    hideGoalCelebration();
+  }, 5000);
+}
+
+function hideGoalCelebration() {
+  if (goalTimer) {
+    clearTimeout(goalTimer);
+    goalTimer = null;
+  }
+
+  if (goalOverlay) {
+    goalOverlay.classList.remove("show");
+    goalOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  if (confettiLayer) {
+    confettiLayer.innerHTML = "";
+  }
+}
+
+function createConfetti() {
+  if (!confettiLayer) return;
+
+  confettiLayer.innerHTML = "";
+
+  const colors = [
+    "#ff3b30",
+    "#ff9500",
+    "#ffcc00",
+    "#34c759",
+    "#007aff",
+    "#5856d6",
+    "#af52de"
+  ];
+
+  for (let i = 0; i < 90; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 180 + Math.random() * 520;
+
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance + 120;
+
+    piece.style.setProperty("--x", `${x}px`);
+    piece.style.setProperty("--y", `${y}px`);
+    piece.style.setProperty("--r", `${Math.random() * 1080 - 540}deg`);
+    piece.style.backgroundColor =
+      colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = `${Math.random() * 0.18}s`;
+
+    confettiLayer.appendChild(piece);
+  }
+}
+
+function prepareAudio() {
+  try {
+    if (!audioContext) {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (AudioContextClass) {
+        audioContext = new AudioContextClass();
+      }
+    }
+
+    if (audioContext && audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+  } catch (error) {
+    console.warn("AudioContext initialization failed:", error);
+  }
+}
+
+function playGoalSound() {
+  if (!audioContext) return;
+
+  try {
+    const now = audioContext.currentTime;
+    const bufferSize = Math.floor(audioContext.sampleRate * 0.18);
+    const buffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate
+    );
+
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      const decay = 1 - i / bufferSize;
+      data[i] = (Math.random() * 2 - 1) * decay * decay;
+    }
+
+    const noise = audioContext.createBufferSource();
+    noise.buffer = buffer;
+
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + 0.18
+    );
+
+    noise.connect(gain);
+    gain.connect(audioContext.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.2);
+  } catch (error) {
+    console.warn("Goal sound failed:", error);
+  }
+}
+
+// iPhone/Safariでは音声開始にユーザー操作が必要なため、最初のタップで準備
+document.addEventListener(
+  "pointerdown",
+  prepareAudio,
+  { once: true }
+);
+
+/*
  * 現在位置からルート折れ線までの最短距離を求める。
  *
  * lat, lon:

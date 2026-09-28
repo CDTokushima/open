@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bottom-bar-height: 82px;
+}
+
 html,
 body {
   margin: 0;
@@ -23,24 +27,24 @@ main {
   padding: 0;
 }
 
-/* 上部：地図 */
+/* 地図 */
 .map-section {
   width: 100%;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 #map {
   width: 100%;
   height: 58vh;
-  min-height: 430px;
+  min-height: 420px;
   position: relative;
+  overflow: hidden;
   background: #e9eaec;
   border-radius: 0 0 18px 18px;
-  overflow: hidden;
 }
 
-/* Leafletタイル崩れ対策 */
+/* Leaflet タイル崩れ防止 */
 .leaflet-container img,
 .leaflet-container .leaflet-tile,
 .leaflet-container .leaflet-marker-icon,
@@ -58,13 +62,25 @@ main {
   font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
 }
 
+/* 現在地マーカー */
+.current-position-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #147efb;
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 2px rgba(20, 126, 251, 0.35),
+    0 1px 5px rgba(0,0,0,0.25);
+}
+
 /* 状態表示 */
 .status-card {
   margin: 12px;
   padding: 12px 14px;
   background: #fff;
   border-radius: 14px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.09);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
   font-size: 14px;
   line-height: 1.65;
 }
@@ -98,10 +114,10 @@ main {
     calc(8px + env(safe-area-inset-bottom))
     max(8px, env(safe-area-inset-left));
 
-  background: rgba(248, 248, 250, 0.96);
-  border-top: 1px solid rgba(0, 0, 0, 0.10);
-  backdrop-filter: blur(14px);
+  background: rgba(248,248,250,0.96);
+  border-top: 1px solid rgba(0,0,0,0.10);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .controls button {
@@ -129,62 +145,20 @@ main {
 }
 
 .bottom-spacer {
-  height: calc(76px + env(safe-area-inset-bottom));
+  height: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom));
 }
 
-@media (min-width: 700px) {
-  #map {
-    height: 65vh;
-    min-height: 520px;
-  }
-
-  .status-card,
-  .hint {
-    max-width: 960px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .controls {
-    left: 50%;
-    right: auto;
-    width: min(760px, 100%);
-    transform: translateX(-50%);
-    border-radius: 16px 16px 0 0;
-  }
-
-  .controls button {
-    font-size: 14px;
-  }
-}
-
-
-/* 現在地マーカー */
-.current-position-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #147efb;
-  border: 3px solid white;
-  box-shadow: 0 0 0 2px rgba(20, 126, 251, 0.35);
-}
-
-
-
-/* -----------------------------
-   ゴール演出
------------------------------- */
-
+/* ゴール */
 .goal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 10000;
   display: none;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  background: rgba(255,255,255,0.18);
 }
 
 .goal-overlay.show {
@@ -192,27 +166,28 @@ main {
   animation: goalFadeIn 0.2s ease-out;
 }
 
-.goal-message {
+.goal-card {
   position: relative;
   z-index: 2;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 24px;
+  min-width: 240px;
   padding: 28px 34px;
+  text-align: center;
+  background: rgba(255,255,255,0.95);
+  border-radius: 24px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.22);
   animation: goalPop 0.55s cubic-bezier(.2,.9,.3,1.25);
 }
 
-.goal-burst {
+.goal-icon {
   font-size: 56px;
   line-height: 1;
   margin-bottom: 8px;
 }
 
 .goal-title {
-  font-size: clamp(42px, 10vw, 88px);
-  font-weight: 900;
+  font-size: clamp(42px, 12vw, 82px);
   line-height: 1;
+  font-weight: 900;
   letter-spacing: 0.04em;
 }
 
@@ -239,15 +214,15 @@ main {
   animation: confettiBoom 1.8s ease-out forwards;
 }
 
-@keyframes goalPop {
-  0%   { transform: scale(0.45) rotate(-4deg); opacity: 0; }
-  55%  { transform: scale(1.12) rotate(2deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
 @keyframes goalFadeIn {
   from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
+}
+
+@keyframes goalPop {
+  0% { transform: scale(0.45) rotate(-4deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
 @keyframes confettiBoom {
@@ -270,108 +245,80 @@ main {
   }
 }
 
+/* 横向き時は操作不可にする */
+.rotate-overlay {
+  display: none;
+}
+
+@media (orientation: landscape) {
+  .rotate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding:
+      max(20px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right))
+      max(20px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+    background: #111;
+    color: #fff;
+  }
+
+  .rotate-card {
+    text-align: center;
+  }
+
+  .rotate-icon {
+    font-size: 64px;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .rotate-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .rotate-text {
+    font-size: 16px;
+    opacity: 0.8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .goal-message,
   .goal-overlay,
+  .goal-card,
   .confetti-piece {
     animation: none !important;
   }
 }
 
-
-/* 横向きレイアウト */
-@media (orientation: landscape) and (max-height: 600px) {
-  html,
-  body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-  }
-
-  main {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  .map-section {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    padding: 0;
-  }
-
+@media (min-width: 700px) and (orientation: portrait) {
   #map {
-    width: calc(100% - 116px);
-    height: 100vh;
-    min-height: 0;
-    border-radius: 0;
+    height: 64vh;
+    min-height: 520px;
   }
 
-  .info-panel {
-    position: absolute;
-    top: max(8px, env(safe-area-inset-top));
-    left: max(8px, env(safe-area-inset-left));
-    z-index: 4000;
-    width: min(330px, 44vw);
-    pointer-events: none;
-  }
-
-  .status-card {
-    margin: 0;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.88);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-    font-size: 11px;
-    line-height: 1.35;
-  }
-
-  .hint,
-  .bottom-spacer {
-    display: none;
+  .status-card,
+  .hint {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .controls {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: auto;
-    z-index: 5000;
-    width: 116px;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    padding:
-      max(8px, env(safe-area-inset-top))
-      max(8px, env(safe-area-inset-right))
-      max(8px, env(safe-area-inset-bottom))
-      8px;
-    background: rgba(248,248,250,0.96);
-    border-top: none;
-    border-left: 1px solid rgba(0,0,0,0.10);
-    border-radius: 0;
-    transform: none;
+    left: 50%;
+    right: auto;
+    width: min(760px, 100%);
+    transform: translateX(-50%);
+    border-radius: 16px 16px 0 0;
   }
 
   .controls button {
-    min-height: 0;
-    width: 100%;
-    padding: 4px 3px;
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 1.15;
-  }
-
-  .leaflet-control-zoom {
-    margin-top: calc(8px + env(safe-area-inset-top)) !important;
-    margin-left: calc(8px + env(safe-area-inset-left)) !important;
+    font-size: 14px;
   }
 }

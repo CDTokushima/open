@@ -2,15 +2,15 @@ const DEFAULT_CENTER = [34.0703, 134.5548];
 const DEFAULT_ZOOM = 13;
 
 // 自転車向け公開ルーティングサービス（OSRM互換）
-const OSRM_BASE_URL = "https://routing.openstreetmap.de/routed-bike";
+const ROUTING_BASE_URL = "https://routing.openstreetmap.de/routed-bike";
 
-// ルートから何m外れたら自動再検索するか
+// ルートから30m以上外れた場合のみ自動再検索
 const REROUTE_THRESHOLD_METERS = 30;
 
-// GPSが頻繁に更新されてもAPIを連打しないための待ち時間
+// 連続再検索防止
 const REROUTE_COOLDOWN_MS = 15000;
 
-// 目的地から何m以内で到着と判定するか
+// 目的地から20m以内でゴール判定
 const GOAL_THRESHOLD_METERS = 20;
 
 const map = L.map("map", {
@@ -23,15 +23,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-window.addEventListener("resize", () => {
-  map.invalidateSize(false);
-});
-
-window.addEventListener("orientationchange", () => {
-  setTimeout(() => map.invalidateSize(true), 150);
-  setTimeout(() => map.invalidateSize(true), 500);
-});
-
 let currentPosition = null;
 let destinationPosition = null;
 
@@ -40,7 +31,6 @@ let accuracyCircle = null;
 let destinationMarker = null;
 let routeLine = null;
 
-// 現在表示しているルートの座標列 [[lat, lon], ...]
 let currentRouteCoordinates = [];
 
 let watchId = null;
@@ -56,8 +46,8 @@ let audioContext = null;
 
 const locationButton = document.getElementById("locationButton");
 const routeButton = document.getElementById("routeButton");
-const appleMapsButton = document.getElementById("appleMapsButton");
 const followButton = document.getElementById("followButton");
+const appleMapsButton = document.getElementById("appleMapsButton");
 const clearButton = document.getElementById("clearButton");
 
 const statusText = document.getElementById("status");
@@ -66,6 +56,7 @@ const accuracyText = document.getElementById("accuracy");
 const destinationText = document.getElementById("destination");
 const distanceText = document.getElementById("distance");
 const durationText = document.getElementById("duration");
+
 const goalOverlay = document.getElementById("goalOverlay");
 const confettiLayer = document.getElementById("confettiLayer");
 
@@ -75,6 +66,15 @@ const currentPositionIcon = L.divIcon({
   iconSize: [18, 18],
   iconAnchor: [9, 9]
 });
+
+function setStatus(message) {
+  statusText.textContent = message;
+}
+
+function updateButtons() {
+  routeButton.disabled = !(currentPosition && destinationPosition);
+  appleMapsButton.disabled = !destinationPosition;
+}
 
 function startLocationTracking() {
   if (!navigator.geolocation) {
@@ -142,11 +142,11 @@ async function handleLocationUpdate(position) {
   } else if (followCurrentPosition) {
     map.panTo([lat, lon], {
       animate: true,
-      duration: 0.4
+      duration: 0.35
     });
   }
 
-  // 目的地から20m以内に入ったら一度だけゴール演出
+  // ゴール判定
   if (destinationPosition && !goalReached) {
     const distanceToGoal = haversineDistanceMeters(
       lat,
@@ -159,11 +159,12 @@ async function handleLocationUpdate(position) {
       goalReached = true;
       showGoalCelebration();
       setStatus(`ゴール！ 目的地まで約${Math.round(distanceToGoal)}mです。`);
+      updateButtons();
       return;
     }
   }
 
-  // ゴール後はルート逸脱による自動再検索を行わない
+  // 30m以上ルートから外れた場合のみ再検索
   if (
     !goalReached &&
     destinationPosition &&
@@ -176,13 +177,12 @@ async function handleLocationUpdate(position) {
       currentRouteCoordinates
     );
 
-    // 30mを超えた場合のみ再検索
     if (distanceFromRoute > REROUTE_THRESHOLD_METERS) {
       const now = Date.now();
 
       if (now - lastRerouteAt >= REROUTE_COOLDOWN_MS) {
         setStatus(
-          `ルートから約${Math.round(distanceFromRoute)}m外れました。自動再検索します...`
+          `ルートから約${Math.round(distanceFromRoute)}m外れました。再検索します...`
         );
 
         lastRerouteAt = now;
@@ -209,7 +209,7 @@ function handleLocationError(error) {
   } else if (error.code === 2) {
     setStatus("現在地を取得できませんでした。");
   } else if (error.code === 3) {
-    setStatus("位置情報取得がタイムアウトしました。再試行します。");
+    setStatus("位置情報取得がタイムアウトしました。");
   } else {
     setStatus("位置情報取得中にエラーが発生しました。");
   }
@@ -217,30 +217,29 @@ function handleLocationError(error) {
 
 locationButton.addEventListener("click", () => {
   firstLocationFix = true;
+  followCurrentPosition = true;
+  followButton.textContent = "追従：ON";
   startLocationTracking();
 });
 
 followButton.addEventListener("click", () => {
   followCurrentPosition = !followCurrentPosition;
-
   followButton.textContent =
     `追従：${followCurrentPosition ? "ON" : "OFF"}`;
 
   if (followCurrentPosition && currentPosition) {
     map.panTo(
       [currentPosition.lat, currentPosition.lon],
-      { animate: true, duration: 0.4 }
+      { animate: true, duration: 0.35 }
     );
   }
 });
 
-// 地図を手動で動かしたら自動追従をOFF
 map.on("dragstart", () => {
   followCurrentPosition = false;
   followButton.textContent = "追従：OFF";
 });
 
-// 地図タップで目的地を指定
 map.on("click", event => {
   const { lat, lng } = event.latlng;
 
@@ -275,7 +274,7 @@ map.on("click", event => {
   currentRouteCoordinates = [];
 
   if (currentPosition) {
-    setStatus("目的地を設定しました。「自転車ルートを検索」を押してください。");
+    setStatus("目的地を設定しました。「自転車ルート」を押してください。");
   } else {
     setStatus("目的地を設定しました。現在地の取得を待っています。");
   }
@@ -283,7 +282,6 @@ map.on("click", event => {
   updateButtons();
 });
 
-// 手動ルート検索
 routeButton.addEventListener("click", async () => {
   await searchRoute(false);
 });
@@ -311,7 +309,7 @@ async function searchRoute(isAutomatic = false) {
     `${destinationPosition.lon},${destinationPosition.lat}`;
 
   const url =
-    `${OSRM_BASE_URL}/route/v1/driving/${start};${goal}` +
+    `${ROUTING_BASE_URL}/route/v1/driving/${start};${goal}` +
     `?overview=full&geometries=geojson&steps=true`;
 
   try {
@@ -330,9 +328,10 @@ async function searchRoute(isAutomatic = false) {
 
     const route = data.routes[0];
 
-    const coordinates = route.geometry.coordinates.map(
-      coord => [coord[1], coord[0]]
-    );
+    const coordinates =
+      route.geometry.coordinates.map(
+        coord => [coord[1], coord[0]]
+      );
 
     currentRouteCoordinates = coordinates;
 
@@ -345,18 +344,14 @@ async function searchRoute(isAutomatic = false) {
       opacity: 0.85
     }).addTo(map);
 
-    distanceText.textContent = formatDistance(route.distance);
-    durationText.textContent = formatDuration(route.duration);
+    distanceText.textContent =
+      formatDistance(route.distance);
+
+    durationText.textContent =
+      formatDuration(route.duration);
 
     if (isAutomatic) {
-      setStatus("ルートを自動再検索しました。現在地を追跡中です。");
-
-      if (followCurrentPosition) {
-        map.panTo(
-          [currentPosition.lat, currentPosition.lon],
-          { animate: true, duration: 0.4 }
-        );
-      }
+      setStatus("ルートを自動再検索しました。");
     } else {
       map.fitBounds(routeLine.getBounds(), {
         padding: [30, 30]
@@ -365,14 +360,15 @@ async function searchRoute(isAutomatic = false) {
       followCurrentPosition = false;
       followButton.textContent = "追従：OFF";
 
-      setStatus("自転車ルートを表示しました。現在地は引き続き更新されます。");
+      setStatus("自転車ルートを表示しました。");
     }
 
   } catch (error) {
     console.error(error);
+
     setStatus(
       isAutomatic
-        ? "自動再検索に失敗しました。現在地の追跡は継続します。"
+        ? "自動再検索に失敗しました。位置追跡は継続します。"
         : "ルート検索に失敗しました。"
     );
   } finally {
@@ -380,27 +376,23 @@ async function searchRoute(isAutomatic = false) {
   }
 }
 
-// Apple Maps
 appleMapsButton.addEventListener("click", () => {
   if (!destinationPosition) {
-    setStatus("目的地を設定してください。");
     return;
   }
 
   const destination =
     `${destinationPosition.lat},${destinationPosition.lon}`;
 
-  const appleMapsUrl =
+  window.location.href =
     `https://maps.apple.com/?daddr=${encodeURIComponent(destination)}`;
-
-  window.location.href = appleMapsUrl;
 });
 
-// 目的地・ルートだけクリア。GPS追跡は継続
 clearButton.addEventListener("click", () => {
   destinationPosition = null;
   currentRouteCoordinates = [];
   goalReached = false;
+
   hideGoalCelebration();
 
   if (destinationMarker) {
@@ -426,15 +418,6 @@ clearButton.addEventListener("click", () => {
   updateButtons();
 });
 
-function updateButtons() {
-  routeButton.disabled = !(currentPosition && destinationPosition);
-  appleMapsButton.disabled = !destinationPosition;
-}
-
-function setStatus(message) {
-  statusText.textContent = message;
-}
-
 function formatDistance(meters) {
   if (meters < 1000) {
     return `${Math.round(meters)} m`;
@@ -455,7 +438,6 @@ function formatDuration(seconds) {
 
   return `約${hours}時間${restMinutes}分`;
 }
-
 
 function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -478,9 +460,74 @@ function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function showGoalCelebration() {
-  if (!goalOverlay || !confettiLayer) return;
+function distanceToRouteMeters(lat, lon, routeCoordinates) {
+  let minDistance = Infinity;
 
+  for (let i = 0; i < routeCoordinates.length - 1; i++) {
+    const a = routeCoordinates[i];
+    const b = routeCoordinates[i + 1];
+
+    const distance = distancePointToSegmentMeters(
+      lat,
+      lon,
+      a[0],
+      a[1],
+      b[0],
+      b[1]
+    );
+
+    if (distance < minDistance) {
+      minDistance = distance;
+    }
+  }
+
+  return minDistance;
+}
+
+function distancePointToSegmentMeters(
+  pLat,
+  pLon,
+  aLat,
+  aLon,
+  bLat,
+  bLon
+) {
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLon =
+    111320 * Math.cos(pLat * Math.PI / 180);
+
+  const ax = (aLon - pLon) * metersPerDegreeLon;
+  const ay = (aLat - pLat) * metersPerDegreeLat;
+
+  const bx = (bLon - pLon) * metersPerDegreeLon;
+  const by = (bLat - pLat) * metersPerDegreeLat;
+
+  const abx = bx - ax;
+  const aby = by - ay;
+
+  const lengthSquared =
+    abx * abx + aby * aby;
+
+  if (lengthSquared === 0) {
+    return Math.sqrt(ax * ax + ay * ay);
+  }
+
+  let t =
+    -(ax * abx + ay * aby) /
+    lengthSquared;
+
+  t = Math.max(0, Math.min(1, t));
+
+  const closestX = ax + t * abx;
+  const closestY = ay + t * aby;
+
+  return Math.sqrt(
+    closestX * closestX +
+    closestY * closestY
+  );
+}
+
+function showGoalCelebration() {
   goalOverlay.classList.add("show");
   goalOverlay.setAttribute("aria-hidden", "false");
 
@@ -502,19 +549,12 @@ function hideGoalCelebration() {
     goalTimer = null;
   }
 
-  if (goalOverlay) {
-    goalOverlay.classList.remove("show");
-    goalOverlay.setAttribute("aria-hidden", "true");
-  }
-
-  if (confettiLayer) {
-    confettiLayer.innerHTML = "";
-  }
+  goalOverlay.classList.remove("show");
+  goalOverlay.setAttribute("aria-hidden", "true");
+  confettiLayer.innerHTML = "";
 }
 
 function createConfetti() {
-  if (!confettiLayer) return;
-
   confettiLayer.innerHTML = "";
 
   const colors = [
@@ -533,7 +573,6 @@ function createConfetti() {
 
     const angle = Math.random() * Math.PI * 2;
     const distance = 180 + Math.random() * 520;
-
     const x = Math.cos(angle) * distance;
     const y = Math.sin(angle) * distance + 120;
 
@@ -542,7 +581,8 @@ function createConfetti() {
     piece.style.setProperty("--r", `${Math.random() * 1080 - 540}deg`);
     piece.style.backgroundColor =
       colors[Math.floor(Math.random() * colors.length)];
-    piece.style.animationDelay = `${Math.random() * 0.18}s`;
+    piece.style.animationDelay =
+      `${Math.random() * 0.18}s`;
 
     confettiLayer.appendChild(piece);
   }
@@ -568,11 +608,15 @@ function prepareAudio() {
 }
 
 function playGoalSound() {
-  if (!audioContext) return;
+  if (!audioContext) {
+    return;
+  }
 
   try {
     const now = audioContext.currentTime;
-    const bufferSize = Math.floor(audioContext.sampleRate * 0.18);
+    const bufferSize =
+      Math.floor(audioContext.sampleRate * 0.18);
+
     const buffer = audioContext.createBuffer(
       1,
       bufferSize,
@@ -583,14 +627,22 @@ function playGoalSound() {
 
     for (let i = 0; i < bufferSize; i++) {
       const decay = 1 - i / bufferSize;
-      data[i] = (Math.random() * 2 - 1) * decay * decay;
+      data[i] =
+        (Math.random() * 2 - 1) *
+        decay *
+        decay;
     }
 
-    const noise = audioContext.createBufferSource();
+    const noise =
+      audioContext.createBufferSource();
+
     noise.buffer = buffer;
 
-    const gain = audioContext.createGain();
+    const gain =
+      audioContext.createGain();
+
     gain.gain.setValueAtTime(0.45, now);
+
     gain.gain.exponentialRampToValueAtTime(
       0.001,
       now + 0.18
@@ -601,106 +653,18 @@ function playGoalSound() {
 
     noise.start(now);
     noise.stop(now + 0.2);
+
   } catch (error) {
     console.warn("Goal sound failed:", error);
   }
 }
 
-// iPhone/Safariでは音声開始にユーザー操作が必要なため、最初のタップで準備
 document.addEventListener(
   "pointerdown",
   prepareAudio,
   { once: true }
 );
 
-/*
- * 現在位置からルート折れ線までの最短距離を求める。
- *
- * lat, lon:
- *   現在位置の緯度・経度
- *
- * routeCoordinates:
- *   [[lat, lon], [lat, lon], ...] のルート座標列
- *
- * 戻り値:
- *   ルートまでの最短距離（m）
- *
- * 数十m程度の判定用途なので、現在位置を原点とした
- * 局所平面近似で各線分との距離を計算する。
- */
-function distanceToRouteMeters(lat, lon, routeCoordinates) {
-  let minDistance = Infinity;
-
-  for (let i = 0; i < routeCoordinates.length - 1; i++) {
-    const a = routeCoordinates[i];
-    const b = routeCoordinates[i + 1];
-
-    const distance = distancePointToSegmentMeters(
-      lat,
-      lon,
-      a[0],
-      a[1],
-      b[0],
-      b[1]
-    );
-
-    if (distance < minDistance) {
-      minDistance = distance;
-    }
-  }
-
-  return minDistance;
-}
-
-/*
- * 点Pから線分ABまでの距離をmで返す。
- */
-function distancePointToSegmentMeters(
-  pLat,
-  pLon,
-  aLat,
-  aLon,
-  bLat,
-  bLon
-) {
-  const metersPerDegreeLat = 111320;
-  const metersPerDegreeLon =
-    111320 * Math.cos(pLat * Math.PI / 180);
-
-  // 現在位置Pを原点 (0,0) とする
-  const ax = (aLon - pLon) * metersPerDegreeLon;
-  const ay = (aLat - pLat) * metersPerDegreeLat;
-
-  const bx = (bLon - pLon) * metersPerDegreeLon;
-  const by = (bLat - pLat) * metersPerDegreeLat;
-
-  const abx = bx - ax;
-  const aby = by - ay;
-
-  const abLengthSquared =
-    abx * abx + aby * aby;
-
-  if (abLengthSquared === 0) {
-    return Math.sqrt(ax * ax + ay * ay);
-  }
-
-  // P=(0,0) をABへ射影した位置 t
-  let t =
-    -(ax * abx + ay * aby) /
-    abLengthSquared;
-
-  t = Math.max(0, Math.min(1, t));
-
-  const closestX = ax + t * abx;
-  const closestY = ay + t * aby;
-
-  return Math.sqrt(
-    closestX * closestX +
-    closestY * closestY
-  );
-}
-
-// ページ表示直後にGPS追跡開始
 window.addEventListener("load", () => {
   setTimeout(() => {
     map.invalidateSize(true);
@@ -708,7 +672,14 @@ window.addEventListener("load", () => {
   }, 100);
 });
 
-// ページ離脱時にwatch停止
+window.addEventListener("resize", () => {
+  map.invalidateSize(false);
+});
+
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => map.invalidateSize(true), 250);
+});
+
 window.addEventListener("pagehide", () => {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
@@ -717,12 +688,3 @@ window.addEventListener("pagehide", () => {
 });
 
 updateButtons();
-
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(error => {
-      console.warn("Service Worker registration failed:", error);
-    });
-  });
-}

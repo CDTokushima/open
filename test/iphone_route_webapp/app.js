@@ -27,6 +27,10 @@ window.addEventListener("resize", () => {
   map.invalidateSize(false);
 });
 
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => map.invalidateSize(true), 250);
+});
+
 let currentPosition = null;
 let destinationPosition = null;
 
@@ -219,7 +223,7 @@ followButton.addEventListener("click", () => {
   followCurrentPosition = !followCurrentPosition;
 
   followButton.textContent =
-    `現在地を追従：${followCurrentPosition ? "ON" : "OFF"}`;
+    `追従：${followCurrentPosition ? "ON" : "OFF"}`;
 
   if (followCurrentPosition && currentPosition) {
     map.panTo(
@@ -232,7 +236,7 @@ followButton.addEventListener("click", () => {
 // 地図を手動で動かしたら自動追従をOFF
 map.on("dragstart", () => {
   followCurrentPosition = false;
-  followButton.textContent = "現在地を追従：OFF";
+  followButton.textContent = "追従：OFF";
 });
 
 // 地図タップで目的地を指定
@@ -358,7 +362,7 @@ async function searchRoute(isAutomatic = false) {
       });
 
       followCurrentPosition = false;
-      followButton.textContent = "現在地を追従：OFF";
+      followButton.textContent = "追従：OFF";
 
       setStatus("自転車ルートを表示しました。現在地は引き続き更新されます。");
     }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>かんたんルートナビ</title>
+  <title>かんたん自転車ナビ</title>
 
   <link
     rel="stylesheet"
@@ -14,18 +14,9 @@
 </head>
 
 <body>
-  <header>
-    <h1>かんたんルートナビ</h1>
-    <p>現在地を取得し、地図をタップして目的地を指定します。</p>
-  </header>
-
   <main>
-    <section class="controls">
-      <button id="locationButton">① 現在地を再取得</button>
-      <button id="routeButton" disabled>② 自転車ルートを検索</button>
-      <button id="appleMapsButton" disabled>③ Apple Mapsで案内</button>
-      <button id="followButton">現在地を追従：ON</button>
-      <button id="clearButton">クリア</button>
+    <section class="map-section">
+      <div id="map"></div>
     </section>
 
     <section class="status-card">
@@ -37,11 +28,19 @@
       <div><strong>所要時間:</strong> <span id="duration">-</span></div>
     </section>
 
-    <div id="map"></div>
-
     <p class="hint">
-      現在地は自動で継続更新します。地図上の目的地をタップしてください。
+      地図上の目的地をタップしてください。現在地は自動で継続更新します。
     </p>
+
+    <div class="bottom-spacer" aria-hidden="true"></div>
+
+    <nav class="controls" aria-label="ナビ操作">
+      <button id="locationButton" type="button">現在地</button>
+      <button id="routeButton" type="button" disabled>自転車ルート</button>
+      <button id="followButton" type="button">追従：ON</button>
+      <button id="appleMapsButton" type="button" disabled>Apple Maps</button>
+      <button id="clearButton" type="button">クリア</button>
+    </nav>
 
     <div id="goalOverlay" class="goal-overlay" aria-live="assertive" aria-hidden="true">
       <div class="goal-message">
@@ -51,7 +50,6 @@
       </div>
       <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
     </div>
-
   </main>
 
   <script

@@ -6,6 +6,7 @@
 | Coolest Projects Japan | 1月 | 18歳以下 | [Webサイト](https://coolestprojects2026.coderdojo.jp/) |
 | IPA セキュリティ・キャンプ 2026 コネクト | 1月 | 中学生・高校生・大学生 | [Webサイト](https://www.security-camp.or.jp/connect/index.html) |
 | Web×IoTメイカーズチャレンジPLUS in 徳島 (2025) | 2月 | 誰でも | [Webサイト](https://webiotmakers.github.io/2025/) |
+| ISLP International Poster Competition 2026-2027 in JAPAN | 2月 | 小学生・中学生・高校生・大学生（学部） | [Webサイト](https://sites.google.com/jissen.ac.jp/islpinjapan26-27/) |
 | 情報処理推進機構 未踏IT人材発掘・育成事業 | 3月 | 25歳未満 | [Webサイト](https://www.ipa.go.jp/jinzai/mitou/it/index.html) |
 | 一般社団法人 未踏 未踏ジュニア | 3月 | 17歳以下 | [Webサイト](https://jr.mitou.org/) |
 | 全国物理コンテスト 物理チャレンジ！ | 4月 | 中学生・高校生 | [Webサイト](https://www.jpho.jp/) |

@@ -57,4 +57,67 @@
 - 全国高等学校パソコンコンクール「パソコン甲子園」  
 - ETロボコン  
 - 中高生情報学研究コンテスト  
-- 日本情報オリンピック女性部門  
+- 日本情報オリンピック女性部門
+
+
+<style>
+/* 今月 */
+table tbody tr.current-month > td {
+  background-color: #fff0b3 !important;
+}
+
+/* 翌月 */
+table tbody tr.next-month > td {
+  background-color: #dbebff !important;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // 日本時間で判定
+  const month = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Tokyo",
+      month: "numeric"
+    }).format(new Date())
+  );
+  const nextMonth = month % 12 + 1;
+
+  function includesMonth(period, target) {
+    const match = period.trim().match(
+      /^(\d{1,2})(?:\s*[-〜～–]\s*(\d{1,2}))?\s*月$/
+    );
+    if (!match) return false;
+
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if ([start, end].some(n => n < 1 || n > 12)) {
+      return false;
+    }
+
+    return start <= end
+      ? target >= start && target <= end
+      : target >= start || target <= end;
+  }
+
+  document.querySelectorAll("table").forEach(table => {
+    const headers = [...table.querySelectorAll("thead th")]
+      .map(th => th.textContent.trim());
+
+    const periodIndex = headers.indexOf("申込時期");
+    if (periodIndex < 0) return;
+
+    table.querySelectorAll("tbody tr").forEach(row => {
+      const cells = row.querySelectorAll("td");
+      const period = cells[periodIndex]?.textContent || "";
+
+      if (includesMonth(period, month)) {
+        row.classList.add("current-month");
+      } else if (includesMonth(period, nextMonth)) {
+        row.classList.add("next-month");
+      }
+    });
+  });
+});
+</script>
+

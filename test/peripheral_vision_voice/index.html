@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <title>周辺視野テスト v1.8.9 (2026-11-02)</title>
+  <title>周辺視野テスト v1.8.10 (2026-11-02)</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
     * { box-sizing: border-box; }
@@ -26,6 +26,7 @@
     #conditionLabel { font-size: clamp(38px, 9vw, 54px); font-weight: 700; }
     #readyInstruction { margin-top: 26px; font-size: 18px; color: #444; line-height: 1.6; white-space: pre-line; }
     #readyBackButton { margin: 25px auto 0; max-width: 260px; }
+    #readyStartButton { margin: 20px auto 0; max-width: 280px; background: #161616; color: #fff; }
     #playScreen { padding: 0; }
     #symbol { display: block; width: min(96vw, 75dvh, 540px); height: auto; aspect-ratio: 1; overflow: visible; }
     #symbolPath { fill: currentColor; stroke: currentColor; stroke-width: 1.5; }
@@ -75,8 +76,7 @@
         <button type="button" data-condition="blue">(5) 青</button>
       </div>
       <p id="menuMicState" class="smallStatus" aria-live="polite"></p>
-      <button type="button" id="menuStopMicButton" class="subtle" hidden>マイクを終了</button>
-      <p class="buildLabel">Version: v1.8.9 / 2026-11-02 (認識継続版)</p>
+      <p class="buildLabel">Version: v1.8.10 / 2026-11-02 (認識継続版)</p>
     </div>
   </main>
 
@@ -84,8 +84,8 @@
     <div class="panel">
       <div id="conditionLabel"></div>
       <p id="readyInstruction">画面をタッチして開始<br>マイクへのアクセスを許可してください。</p>
+      <button type="button" id="readyStartButton">開始</button>
       <p id="readyMicState" class="smallStatus" aria-live="polite"></p>
-      <button id="readyStopMicButton" type="button" class="subtle" hidden>マイクを終了</button>
       <p id="micCheckStatus" class="smallStatus" aria-live="polite"></p>
       <button id="readyReloadButton" type="button" class="subtle" hidden>ページを再読み込みして復旧</button>
       <button id="readyBackButton" type="button" class="subtle" hidden>条件選択に戻る</button>
@@ -108,14 +108,14 @@
   <section id="doneScreen" class="screen" hidden aria-label="結果">
     <div class="resultPanel">
       <h2>測定結果</h2>
-      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.9 / 2026-11-02 (認識継続版)</p>
+      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.10 / 2026-11-02 (認識継続版)</p>
       <div id="score" class="score" aria-live="polite"></div>
       <div id="counts" class="counts"></div>
       <div class="tableWrap"><table class="resultTable">
         <thead><tr><th>回</th><th>表示</th><th>認識</th><th>判定</th><th>初出</th><th>推定</th></tr></thead>
         <tbody id="resultBody"></tbody>
       </table></div>
-      <p class="note" id="methodNote">「初出」は暫定・確定テキストに回答語が初めて現れた時刻から、図形表示開始を差し引いた時間です。認識遅延を含みます。「推定」は初回のspeechstartから求めた認識遅延を一律に差し引いた参考値で、発話開始の実測値ではありません。<br>「北→上・東→右・南・なみ・波→下・西→左」は正式な回答として受け付けます。［候補］は認識語のひらがな読みと方向語の読みが近い場合で、暫定集計に含めます。［要確認］は候補が複数あるため自動採点しません。読みの類似は発話の正しさを保証しません。認識原語と候補をCSVに保存します。回答欄の※は「暫定認識で取得されたが最終確定テキストでは消えた語」、判定欄の※は「推定時刻が図形切替前後0.5秒以内で、試行対応に不確実性がある」を示します。いずれも暫定採点に含めています。各図形の実表示時刻と、最初の音声認識テキストから概算した認識遅延を使って割り当てます。最初の回答が「アルバム」等の対象外語として認識されても、後の「下」「右」などを前のカードへ詰めません。最後の図形が消えてから2秒間も回答を受け付け、結果画面では採点だけを休止してマイクを継続します。音声認識の遅延は一定ではないため、表示回との対応および発話開始推定は確定値ではありません。</p>
+      <p class="note" id="methodNote">「初出」は暫定・確定テキストに回答語が初めて現れた時刻から、図形表示開始を差し引いた時間です。認識遅延を含みます。「推定」は初回のspeechstartから求めた認識遅延を一律に差し引いた参考値で、発話開始の実測値ではありません。<br>「北→上・東→右・南・なみ・波→下・西→左」は正式な回答として受け付けます。「。」や「句点」は『丸』の補正候補として扱います（自動句読点との区別はできません）。［候補］は認識語のひらがな読みと方向語の読みが近い場合で、暫定集計に含めます。［要確認］は候補が複数あるため自動採点しません。読みの類似は発話の正しさを保証しません。認識原語と候補をCSVに保存します。回答欄の※は「暫定認識で取得されたが最終確定テキストでは消えた語」、判定欄の※は「推定時刻が図形切替前後0.5秒以内で、試行対応に不確実性がある」を示します。いずれも暫定採点に含めています。各図形の実表示時刻と、最初の音声認識テキストから概算した認識遅延を使って割り当てます。最初の回答が「アルバム」等の対象外語として認識されても、後の「下」「右」などを前のカードへ詰めません。最後の図形が消えてから2秒間も回答を受け付け、結果画面では採点だけを休止してマイクを継続します。音声認識の遅延は一定ではないため、表示回との対応および発話開始推定は確定値ではありません。</p>
       <p id="doneMicState" class="smallStatus micLive" aria-live="polite"></p>
       <p id="resultWarning" class="smallStatus" hidden></p>
       <details class="diagnostics"><summary>認識テキストと時刻のログ</summary><p id="transcriptSummary" class="note"></p><pre id="recognitionLog"></pre></details>
@@ -123,8 +123,7 @@
         <button type="button" id="csvButton" class="subtle">結果をCSVで保存</button>
         <button type="button" id="logButton" class="subtle">認識ログをCSVで保存</button>
         <button type="button" id="retryButton">同じ条件でもう一度（マイク継続）</button>
-        <button type="button" id="stopMicButton" class="subtle">マイクを終了</button>
-        <button type="button" id="doneReloadButton" class="subtle">マイク再起動が必要な場合：再読み込み</button>
+          <button type="button" id="doneReloadButton" class="subtle">マイク再起動が必要な場合：再読み込み</button>
         <button type="button" id="backButton" class="subtle">条件選択に戻る</button>
       </div>
     </div>
@@ -155,7 +154,7 @@
       blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
     };
     const symbols = ["up", "right", "down", "left", "circle"];
-    const APP_VERSION = "v1.8.9 / 2026-11-02 (認識継続版)";
+    const APP_VERSION = "v1.8.10 / 2026-11-02 (認識継続版)";
     const DISPLAY_MS = 1500;
     const GRACE_MS = 2000;
     // Wait for the recognizer's actual `end` before allowing another test.
@@ -200,9 +199,6 @@
     const menuMicState = document.getElementById("menuMicState");
     const readyMicState = document.getElementById("readyMicState");
     const doneMicState = document.getElementById("doneMicState");
-    const menuStopMicButton = document.getElementById("menuStopMicButton");
-    const readyStopMicButton = document.getElementById("readyStopMicButton");
-    const stopMicButton = document.getElementById("stopMicButton");
 
     function showScreen(name) { for (const [key, el] of Object.entries(screens)) el.hidden = key !== name; }
     function warn(text) { if (!runWarnings.includes(text)) runWarnings.push(text); }
@@ -244,9 +240,6 @@
       menuMicState.textContent = readyMicState.textContent = doneMicState.textContent = status;
       menuMicState.className = readyMicState.className = doneMicState.className =
         "smallStatus " + (live ? "micLive" : "micOff");
-      menuStopMicButton.hidden = !live;
-      readyStopMicButton.hidden = !live;
-      stopMicButton.hidden = !live;
       document.getElementById("retryButton").textContent = live ?
         "同じ条件でもう一度（マイク継続）" : "同じ条件でもう一度（再読み込み）";
     }
@@ -328,6 +321,8 @@
       "下": ["down","した","exact"], "南": ["down","みなみ","direction-alias"], "波": ["down","なみ","direction-alias"],
       "左": ["left","ひだり","exact"], "西": ["left","にし","direction-alias"],
       "丸": ["circle","まる","exact"], "円": ["circle","まる","exact"],
+      "。": ["circle","まる","punctuation-candidate"], ".": ["circle","まる","punctuation-candidate"],
+      "句点": ["circle","まる","punctuation-candidate"],
       "○": ["circle","まる","exact"], "◯": ["circle","まる","exact"], "〇": ["circle","まる","exact"],
       "植え": ["up","うえ","exact-reading"], "飢え": ["up","うえ","exact-reading"],
       "来た": ["up","きた","exact-reading"], "舌": ["down","した","exact-reading"],
@@ -407,17 +402,17 @@
     function extractCommandDetails(text) {
       const normalized=String(text||"").normalize("NFKC"),found=[];
       // Separate known kanji words, kana stretches, and anything else.
-      const pattern=new RegExp(knownKanjiPattern.source+'|[ぁ-ゖァ-ヶー]+','gu');
+      const pattern=new RegExp(knownKanjiPattern.source+'|[ぁ-ゖァ-ヶー]+|[。.]','gu');
       for(const match of normalized.matchAll(pattern)){
         const token=match[0],entry=directVocabulary[token];
         if(entry){
           const [word,reading,kind]=entry;
           found.push({word,raw:token,reading,candidateWords:[word],
             distance:kind==='phonetic-candidate'?editDistance(reading,readingGroups[word][0]):0,
-            kind,corrected:kind==='phonetic-candidate',ambiguous:false});
+            kind,corrected:kind==='phonetic-candidate'||kind==='punctuation-candidate',ambiguous:false});
         } else found.push(...extractKanaTokens(token));
       }
-      return found;
+      return found.filter((d,i)=>!(d.kind==='punctuation-candidate' && i>0 && found[i-1].word==='circle'));
     }
     function detailKey(detail) {
       return detail.word||('候補:'+detail.candidateWords.join('/'));
@@ -906,7 +901,7 @@
       if (timed.some(t=>!t.retainedInFinal))
         warn("暫定認識から取得した回答の一部が、最終確定テキストから消えています。判定は暫定語を採用しており、誤認識の可能性があります。");
       if(timed.some(t=>t.corrected))
-        warn("ひらがなの読みが近い認識語は補正候補として暫定採点しています。複数の候補が同点なら自動採点せず『要確認』にします。正解の図形名を使って候補を選ぶことはありません。");
+        warn("音声認識の補正候補を暫定採点しています。句点（。）は『丸』の候補ですが、自動句読点の可能性があるため要注意です。複数の候補が同点なら自動採点せず『要確認』にします。正解の図形名を使って候補を選ぶことはありません。");
       if (rows.some(r=>r.ambiguousMapping))
         warn("※ 時刻対応注意：推定時刻が図形切替付近または表示区間外の回答があります。遅れた発話を拾うため順序も利用していますが、認識遅延の変動により対応は暫定です。");
       return rows;
@@ -1021,14 +1016,20 @@
       for (const e of detectedCommands) rows.push([
         APP_VERSION,runStartedAt,conditions[selected].label,"回答語初出",e.sourceIndex,e.source,
         Math.round(e.firstSeenAt-start),
-        e.corrected?`${e.rawToken} -> ${e.candidateWords.map(w=>names[w]).join("/")} (ひらがな類似候補、距離${e.distance})`:(e.rawToken||names[e.word])
+        e.corrected?`${e.rawToken} -> ${e.candidateWords.map(w=>names[w]).join("/")} (${e.kind=== "punctuation-candidate"?"句点の補正候補":"ひらがな類似候補、距離"+e.distance})`:(e.rawToken||names[e.word])
       ]);
       csvFile(rows,`peripheral_vision_log_${selected}_${Date.now()}.csv`);
     }
     document.getElementById("conditionButtons").addEventListener("click",ev=>{
       const b=ev.target.closest("button[data-condition]");if(b)chooseCondition(b.dataset.condition);
     });
-    screens.ready.addEventListener("click",startTest);
+    screens.ready.addEventListener("click",ev=>{
+      if(ev.target.closest("button")) return;
+      startTest();
+    });
+    document.getElementById("readyStartButton").addEventListener("click",ev=>{
+      ev.stopPropagation();startTest();
+    });
     readyBackButton.addEventListener("click",ev=>{
       ev.stopPropagation(); resetRun();selected=null;stage="menu";
       showScreen("menu"); updateMicStatus();
@@ -1037,7 +1038,7 @@
       stopMicrophone();
       const url = new URL(window.location.href);
       if (selected && conditions[selected])url.searchParams.set("retry",selected);
-      url.searchParams.set("voiceBuild","189");
+      url.searchParams.set("voiceBuild","1810");
       url.searchParams.set("session",String(Date.now()));
       window.location.assign(url.href);
     }
@@ -1047,13 +1048,6 @@
     });
     readyReloadButton.addEventListener("click",ev=>{ev.stopPropagation();reloadForRetry();});
     document.getElementById("doneReloadButton").addEventListener("click",reloadForRetry);
-    function endMicButtonClick(ev) {
-      ev.stopPropagation();stopMicrophone();
-      if (stage==="ready")refreshReadyMessage();else updateMicStatus();
-    }
-    menuStopMicButton.addEventListener("click",endMicButtonClick);
-    readyStopMicButton.addEventListener("click",endMicButtonClick);
-    stopMicButton.addEventListener("click",endMicButtonClick);
     document.getElementById("backButton").addEventListener("click",()=>{
       resetRun();selected=null;stage="menu";showScreen("menu");updateMicStatus();
     });

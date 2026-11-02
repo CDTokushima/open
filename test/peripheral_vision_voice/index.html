@@ -1,1 +1,447 @@
-peripheral_vision_voice
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>周辺視野テスト（音声回答）</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body { background: #fff; color: #111; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+    .screen { position: fixed; inset: 0; height: 100%; height: 100dvh; display: flex; align-items: center; justify-content: center;
+      padding: max(env(safe-area-inset-top), 16px) max(env(safe-area-inset-right), 20px) max(env(safe-area-inset-bottom), 16px) max(env(safe-area-inset-left), 20px); background: #fff; }
+    .screen[hidden], [hidden] { display: none !important; }
+    .panel { width: min(100%, 400px); text-align: center; }
+    h1 { margin: 0 0 10px; font-size: clamp(25px, 6vw, 32px); }
+    .hint { margin: 0 0 22px; font-size: 15px; color: #555; line-height: 1.65; }
+    .menu { display: grid; gap: 12px; }
+    button { display: block; width: 100%; min-height: 54px; padding: 14px 12px; background: #fff; border: 2px solid #222; border-radius: 10px;
+      color: #111; font: inherit; font-size: 19px; font-weight: 600; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #0070c0; outline-offset: 3px; }
+    button:active { background: #eee; }
+    button.subtle { border: 1px solid #999; font-size: 16px; min-height: 46px; }
+    #readyScreen { cursor: pointer; }
+    #conditionLabel { font-size: clamp(38px, 9vw, 54px); font-weight: 700; }
+    #readyInstruction { margin-top: 26px; font-size: 18px; color: #444; line-height: 1.6; white-space: pre-line; }
+    #readyBackButton { margin: 25px auto 0; max-width: 260px; }
+    #playScreen { padding: 0; }
+    #symbol { display: block; width: min(96vw, 75dvh, 540px); height: auto; aspect-ratio: 1; overflow: visible; }
+    #symbolPath { fill: currentColor; stroke: currentColor; stroke-width: 1.5; }
+    #doneScreen { overflow-y: auto; align-items: flex-start; }
+    .resultPanel { width: min(100%, 540px); margin: auto; padding: 8px 0 20px; }
+    #doneScreen h2 { text-align: center; margin: 4px 0 10px; font-size: 29px; }
+    .score { text-align: center; font-size: 21px; margin: 12px 0; font-weight: 700; }
+    .counts { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 8px 0 20px; font-size: 14px; }
+    .resultTable { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .resultTable th, .resultTable td { padding: 11px 5px; border-bottom: 1px solid #ddd; text-align: center; }
+    .resultTable th { background: #f2f4f6; font-weight: 600; }
+    .resultTable td.raw { text-align: left; word-break: break-word; max-width: 130px; }
+    .resultTable .ok { color: #117239; font-weight: 700; }
+    .resultTable .ng { color: #ba2c2c; font-weight: 700; }
+    .resultTable .na { color: #666; }
+    .note { margin: 12px 0 18px; color: #555; font-size: 12px; line-height: 1.6; }
+    .actions { display: grid; gap: 10px; margin-top: 18px; }
+    .smallStatus { margin: 12px 0 0; font-size: 13px; color: #555; text-align: center; }
+    @media (max-height: 580px) { .menu { gap: 8px; } button { min-height: 45px; padding: 8px; } }
+    @media (max-width: 355px) { .resultTable { font-size: 12px; } .resultTable th, .resultTable td { padding: 8px 3px; } }
+  </style>
+</head>
+<body>
+  <main id="menuScreen" class="screen">
+    <div class="panel">
+      <h1>周辺視野テスト</h1>
+      <p class="hint">条件を選択してください。<br>上・右・下・左・丸を声で回答します。</p>
+      <div class="menu" id="conditionButtons">
+        <button type="button" data-condition="basic">(1) 基本</button>
+        <button type="button" data-condition="large">(2) 大</button>
+        <button type="button" data-condition="green">(3) 緑</button>
+        <button type="button" data-condition="red">(4) 赤</button>
+        <button type="button" data-condition="blue">(5) 青</button>
+      </div>
+    </div>
+  </main>
+
+  <section id="readyScreen" class="screen" hidden aria-label="開始待機">
+    <div class="panel">
+      <div id="conditionLabel"></div>
+      <p id="readyInstruction">画面をタッチして開始<br>マイクへのアクセスを許可してください。</p>
+      <button id="readyBackButton" type="button" class="subtle" hidden>条件選択に戻る</button>
+    </div>
+  </section>
+
+  <section id="playScreen" class="screen" hidden aria-label="テスト実行中">
+    <svg id="symbol" viewBox="0 0 540 540" role="img" aria-label="表示図形">
+      <path id="symbolPath" d=""></path>
+    </svg>
+  </section>
+
+  <section id="processingScreen" class="screen" hidden aria-label="集計中">
+    <div class="panel">
+      <h1>集計中…</h1>
+      <p class="hint">最後の音声認識結果を確認しています。</p>
+    </div>
+  </section>
+
+  <section id="doneScreen" class="screen" hidden aria-label="結果">
+    <div class="resultPanel">
+      <h2>測定結果</h2>
+      <div id="score" class="score" aria-live="polite"></div>
+      <div id="counts" class="counts"></div>
+      <table class="resultTable">
+        <thead><tr><th>回</th><th>表示</th><th>回答（認識）</th><th>判定</th><th>反応時間</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+      <p class="note">反応時間は図形の表示から音声の検出までの概算です。発話開始イベントが得られないときは、音声認識結果の受信時刻で代用します（※）。その場合、認識処理の遅延を含みます。<br>回答は各表示中に開始された最初の発話で判定します。未回答・認識不能は不正解と区別します。</p>
+      <p id="resultWarning" class="smallStatus" hidden></p>
+      <div class="actions">
+        <button type="button" id="csvButton" class="subtle">結果をCSVで保存</button>
+        <button type="button" id="retryButton">同じ条件でもう一度</button>
+        <button type="button" id="backButton" class="subtle">条件選択に戻る</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    "use strict";
+
+    // 元の「周辺視野テスト.pdf」に合わせた形状。方向差をなくすため回転を使用する。
+    // 上・右・下・左の全長は基本・大とも 412.66 SVG 単位で完全に一致。
+    const shapes = {
+      basic: {
+        arrow: "M 177.48 155.92 L 270 63.38 L 362.52 155.92 L 316.26 155.92 L 316.26 476.04 L 223.74 476.04 L 223.74 155.92 Z",
+        circle: "M 181.8 270.07 C 181.8 221.14 221.29 181.49 270 181.49 C 318.71 181.49 358.2 221.14 358.2 270.07 C 358.2 318.99 318.71 358.65 270 358.65 C 221.29 358.65 181.8 318.99 181.8 270.07 Z"
+      },
+      large: {
+        arrow: "M 137.16 229.88 L 270 63.38 L 402.84 229.88 L 336.42 229.88 L 336.42 476.04 L 203.58 476.04 L 203.58 229.88 Z",
+        circle: "M 145.08 270.07 C 145.08 200.86 201.01 144.76 270 144.76 C 338.99 144.76 394.92 200.86 394.92 270.07 C 394.92 339.28 338.99 395.38 270 395.38 C 201.01 395.38 145.08 339.28 145.08 270.07 Z"
+      }
+    };
+    const directionAngles = { up: 0, right: 90, down: 180, left: 270 };
+    const names = { up: "上", right: "右", down: "下", left: "左", circle: "丸" };
+    const conditions = {
+      basic: { label: "(1) 基本", shapeSet: "basic", color: "#000000" },
+      large: { label: "(2) 大", shapeSet: "large", color: "#000000" },
+      green: { label: "(3) 緑", shapeSet: "basic", color: "#4ea72e" },
+      red:   { label: "(4) 赤", shapeSet: "basic", color: "#ff0000" },
+      blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
+    };
+    const symbols = ["up", "right", "down", "left", "circle"];
+    const DISPLAY_MS = 1500;
+    const SETTLE_MS = 2300; // 最終発話の認識結果が届く猶予
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const screens = Object.fromEntries(["menu", "ready", "play", "processing", "done"].map(k => [k, document.getElementById(k + "Screen")]));
+    const symbol = document.getElementById("symbol");
+    const symbolPath = document.getElementById("symbolPath");
+    const readyInstruction = document.getElementById("readyInstruction");
+    const readyBackButton = document.getElementById("readyBackButton");
+
+    let selected = null;
+    let stage = "menu"; // menu / ready / starting / running / settling / done
+    let order = [];
+    let trials = [];
+    let trialIndex = -1;
+    let timerId = null;
+    let rafId = null;
+    let recognition = null;
+    let speechOnsets = []; // 発話開始時刻：音声認識の返却が遅れても元の試行に対応付ける
+    let resultSlots = new Map(); // resultIndex → 受け取った暫定・確定テキスト
+    let runStartedAt = null;
+    let runWarnings = [];
+
+    function showScreen(name) {
+      for (const [key, element] of Object.entries(screens)) element.hidden = key !== name;
+    }
+    function clearTimers() {
+      if (timerId !== null) clearTimeout(timerId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      timerId = null;
+      rafId = null;
+    }
+    function releaseRecognizer() {
+      const current = recognition;
+      recognition = null; // 古いrecognizerの遅延イベントを無視
+      if (current) { try { current.abort(); } catch (_) { /* 既に停止 */ } }
+    }
+    function resetRun() {
+      clearTimers();
+      releaseRecognizer();
+      trials = []; order = []; speechOnsets = [];
+      resultSlots = new Map();
+      trialIndex = -1;
+      runWarnings = [];
+      runStartedAt = null;
+    }
+    function shuffledSymbols() {
+      const arr = symbols.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    function chooseCondition(key) {
+      if (!conditions[key]) return;
+      resetRun();
+      selected = key;
+      stage = "ready";
+      document.getElementById("conditionLabel").textContent = conditions[key].label;
+      readyBackButton.hidden = true;
+      readyInstruction.textContent = SpeechRecognitionClass
+        ? "画面をタッチして開始\nマイクの使用を許可してください。"
+        : "このブラウザでは音声認識を利用できません。\n対応ブラウザで開いてください。";
+      if (!SpeechRecognitionClass) readyBackButton.hidden = false;
+      showScreen("ready");
+    }
+    function drawSymbol(name) {
+      const setting = conditions[selected];
+      const shape = shapes[setting.shapeSet];
+      symbol.style.color = setting.color;
+      if (name === "circle") {
+        symbolPath.setAttribute("d", shape.circle);
+        symbolPath.removeAttribute("transform");
+      } else {
+        symbolPath.setAttribute("d", shape.arrow);
+        symbolPath.setAttribute("transform", `rotate(${directionAngles[name]} 270 269.71)`);
+      }
+      symbol.setAttribute("aria-label", names[name]);
+    }
+
+    // 音声認識の表記揺れを統一（上下左右・丸以外を無理に推定しない）。
+    function parseAnswer(transcript) {
+      const s = String(transcript || "").normalize("NFKC")
+        .replace(/[\s\u3000、。,.!！?？「」『』]/g, "")
+        .replace(/(?:です|だよ|だね|だ)$/u, "");
+      const variants = {
+        up: ["上", "うえ", "ウエ"],
+        right: ["右", "みぎ", "ミギ"],
+        down: ["下", "した", "シタ"],
+        left: ["左", "ひだり", "ヒダリ"],
+        circle: ["丸", "まる", "マル", "円", "○", "◯", "〇"]
+      };
+      for (const [key, values] of Object.entries(variants)) {
+        if (values.includes(s)) return key;
+      }
+      return null;
+    }
+    function showReadyError(message) {
+      resetRun();
+      stage = "ready";
+      readyInstruction.textContent = message + "\nもう一度タッチして開始してください。";
+      readyBackButton.hidden = false;
+      showScreen("ready");
+    }
+
+    // ユーザー操作によるstart()のあと、認識開始イベントを受けてから提示する。
+    function startTest() {
+      if (stage !== "ready" || !selected || !SpeechRecognitionClass) return;
+      resetRun();
+      stage = "starting";
+      readyInstruction.textContent = "マイクを準備しています…\n音声認識が始まると図形を表示します。";
+      readyBackButton.hidden = true;
+      const rec = new SpeechRecognitionClass();
+      rec.lang = "ja-JP";
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      recognition = rec;
+      rec.onstart = () => {
+        if (recognition !== rec || stage !== "starting") return;
+        beginStimuli();
+      };
+      rec.onspeechstart = () => {
+        if (recognition !== rec || stage !== "running" || trialIndex < 0) return;
+        const at = performance.now();
+        const current = trials[trialIndex];
+        if (!current || at - current.shownAt >= DISPLAY_MS + 80) return;
+        speechOnsets.push({ trialIndex, at, claimed: false });
+      };
+      rec.onresult = event => {
+        if (recognition !== rec || (stage !== "running" && stage !== "settling")) return;
+        const receivedAt = performance.now();
+        const from = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
+        for (let k = from; k < event.results.length; k++) {
+          const entry = event.results[k];
+          if (!entry || !entry[0]) continue;
+          const raw = String(entry[0].transcript || "").trim();
+          if (!raw) continue;
+          let slot = resultSlots.get(k);
+          if (!slot) {
+            // 音声認識の結果通知は発話開始より後になるので、先行するspeechstartと結びつける。
+            const onset = speechOnsets.find(o => !o.claimed && receivedAt >= o.at && receivedAt - o.at < 5000);
+            if (onset) onset.claimed = true;
+            const assignedTrial = onset ? onset.trialIndex : (stage === "running" ? trialIndex : trials.length - 1);
+            if (assignedTrial < 0) continue;
+            slot = {
+              trialIndex: assignedTrial,
+              at: onset ? onset.at : receivedAt,
+              timeSource: onset ? "speechstart" : "result",
+              raw: "", answer: null, isFinal: false
+            };
+            resultSlots.set(k, slot);
+          }
+          slot.raw = raw;
+          slot.answer = parseAnswer(raw);
+          slot.isFinal = !!entry.isFinal;
+        }
+      };
+      rec.onerror = event => {
+        if (recognition !== rec) return;
+        const label = {
+          "not-allowed": "マイクの使用が許可されませんでした。",
+          "service-not-allowed": "音声認識サービスの利用が許可されませんでした。",
+          "audio-capture": "マイクを使用できません。",
+          "network": "音声認識サービスに接続できません。",
+          "language-not-supported": "日本語の音声認識に対応していません。",
+          "no-speech": "音声認識が音声を検出できず停止しました。"
+        }[event.error] || `音声認識エラー（${event.error || "unknown"}）が発生しました。`;
+        if (stage === "starting" || stage === "running") showReadyError(label);
+        else if (stage === "settling") runWarnings.push(label);
+      };
+      rec.onend = () => {
+        if (recognition !== rec) return;
+        // 実験途中に認識が止まった場合、不正な成績として記録せず再試行させる。
+        if (stage === "starting" || stage === "running") {
+          showReadyError("音声認識が途中で停止したため、測定を中断しました。");
+        }
+      };
+      try {
+        // ユーザーのタップイベント内で開始（モバイル端末のマイク許可に必要）。
+        rec.start();
+      } catch (e) {
+        showReadyError(`音声認識を開始できませんでした（${e.name || "error"}）。`);
+      }
+    }
+
+    function beginStimuli() {
+      order = shuffledSymbols();
+      trials = [];
+      trialIndex = -1;
+      runStartedAt = new Date().toISOString();
+      stage = "running";
+      showScreen("play");
+      rafId = requestAnimationFrame(() => showTrial(0));
+    }
+    function showTrial(i) {
+      rafId = null;
+      if (stage !== "running") return;
+      trialIndex = i;
+      const expected = order[i];
+      drawSymbol(expected);
+      // DOM更新後の単調増加時計による刺激提示基準時刻（描画実時間との誤差は残る）。
+      trials.push({ expected, shownAt: performance.now() });
+      timerId = setTimeout(() => {
+        timerId = null;
+        if (stage !== "running") return;
+        if (i + 1 < order.length) {
+          rafId = requestAnimationFrame(() => showTrial(i + 1));
+        } else {
+          endStimuli();
+        }
+      }, DISPLAY_MS);
+    }
+    function endStimuli() {
+      if (stage !== "running") return;
+      stage = "settling";
+      showScreen("processing");
+      // stop()で確定結果を要求し、遅れて届く結果を短時間だけ待つ。
+      if (recognition) { try { recognition.stop(); } catch (_) { /* 終了済み */ } }
+      timerId = setTimeout(finishTest, SETTLE_MS);
+    }
+    function getResults() {
+      const slots = [...resultSlots.values()];
+      return trials.map((trial, i) => {
+        const related = slots.filter(s => s.trialIndex === i).sort((a, b) => a.at - b.at)[0];
+        const pendingSpeech = speechOnsets.find(o => o.trialIndex === i);
+        const raw = related ? related.raw : "";
+        const answer = related ? related.answer : null;
+        const at = related ? related.at : (pendingSpeech ? pendingSpeech.at : null);
+        const timeSource = related ? related.timeSource : (pendingSpeech ? "speechstart" : "none");
+        const reactionMs = at === null ? null : Math.max(0, Math.round(at - trial.shownAt));
+        let status = "unanswered";
+        if (related) status = answer === null ? "unrecognized" : (answer === trial.expected ? "correct" : "incorrect");
+        else if (pendingSpeech) status = "unrecognized";
+        return { number: i + 1, expected: trial.expected, answer, raw, status, reactionMs, timeSource };
+      });
+    }
+    function finishTest() {
+      if (stage !== "settling") return;
+      clearTimers();
+      const results = getResults();
+      stage = "done";
+      releaseRecognizer();
+      const correct = results.filter(r => r.status === "correct").length;
+      const incorrect = results.filter(r => r.status === "incorrect").length;
+      const unanswered = results.filter(r => r.status === "unanswered").length;
+      const unknown = results.filter(r => r.status === "unrecognized").length;
+      document.getElementById("score").textContent = `正解 ${correct} / ${results.length} 問`;
+      document.getElementById("counts").textContent = `不正解 ${incorrect}　未回答 ${unanswered}　認識不能 ${unknown}`;
+      const tbody = document.getElementById("resultBody");
+      tbody.replaceChildren();
+      for (const r of results) {
+        const tr = document.createElement("tr");
+        const meanings = { correct: "正解", incorrect: "不正解", unanswered: "未回答", unrecognized: "認識不能" };
+        const c = (text, css = "") => {
+          const td = document.createElement("td");
+          td.textContent = text;
+          if (css) td.className = css;
+          tr.appendChild(td);
+        };
+        c(String(r.number));
+        c(names[r.expected]);
+        c(r.answer ? names[r.answer] : (r.raw || "—"), "raw");
+        c(meanings[r.status], r.status === "correct" ? "ok" : (r.status === "incorrect" ? "ng" : "na"));
+        c(r.reactionMs === null ? "—" : (r.reactionMs / 1000).toFixed(3) + "秒" + (r.timeSource === "result" ? " ※" : ""));
+        tbody.appendChild(tr);
+      }
+      const warning = document.getElementById("resultWarning");
+      warning.hidden = runWarnings.length === 0;
+      warning.textContent = runWarnings.join(" ");
+      showScreen("done");
+    }
+    function downloadCsv() {
+      if (stage !== "done") return;
+      const rows = [["日時(ISO8601)", "条件", "試行", "表示", "認識された回答", "認識原文", "判定", "反応時間_ms", "計測基準"]];
+      const meanings = { correct: "正解", incorrect: "不正解", unanswered: "未回答", unrecognized: "認識不能" };
+      for (const r of getResults()) {
+        rows.push([runStartedAt, conditions[selected].label, r.number, names[r.expected],
+          r.answer ? names[r.answer] : "", r.raw, meanings[r.status],
+          r.reactionMs === null ? "" : r.reactionMs,
+          r.timeSource === "speechstart" ? "音声検出イベント" : (r.timeSource === "result" ? "認識結果受信時刻(代用)" : "未計測")]);
+      }
+      const csv = "\uFEFF" + rows.map(row => row.map(v => '"' + String(v ?? "").replaceAll('"', '""') + '"').join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `peripheral_vision_${selected}_${stamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+    }
+
+    document.getElementById("conditionButtons").addEventListener("click", e => {
+      const b = e.target.closest("button[data-condition]");
+      if (b) chooseCondition(b.dataset.condition);
+    });
+    screens.ready.addEventListener("click", startTest);
+    readyBackButton.addEventListener("click", e => {
+      e.stopPropagation();
+      resetRun(); selected = null; stage = "menu"; showScreen("menu");
+    });
+    document.getElementById("csvButton").addEventListener("click", downloadCsv);
+    document.getElementById("retryButton").addEventListener("click", () => chooseCondition(selected));
+    document.getElementById("backButton").addEventListener("click", () => {
+      resetRun(); selected = null; stage = "menu"; showScreen("menu");
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && (stage === "starting" || stage === "running")) {
+        showReadyError("ブラウザが非表示になったため、測定を中断しました。");
+      }
+    });
+    showScreen("menu");
+  </script>
+</body>
+</html>

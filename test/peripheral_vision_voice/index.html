@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <title>周辺視野テスト v1.8.7-reset (2026-11-02)</title>
+  <title>周辺視野テスト v1.8.9 (2026-11-02)</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
     * { box-sizing: border-box; }
@@ -45,6 +45,8 @@
     .note { margin: 12px 0 18px; color: #555; font-size: 12px; line-height: 1.6; }
     .actions { display: grid; gap: 10px; margin-top: 18px; }
     .buildLabel { font-size:12px; color:#666; margin-top:14px; text-align:center; font-variant-numeric:tabular-nums; }
+    .micLive { color:#a42525; font-weight:700; }
+    .micOff { color:#555; }
     .smallStatus { margin: 12px 0 0; font-size: 13px; color: #555; text-align: center; line-height: 1.7; white-space: pre-line; }
     .diagnostics { border-top: 1px solid #ddd; padding: 12px 0; margin-top: 16px; font-size: 13px; }
     .diagnostics summary { cursor: pointer; font-weight: 600; }
@@ -72,7 +74,9 @@
         <button type="button" data-condition="red">(4) 赤</button>
         <button type="button" data-condition="blue">(5) 青</button>
       </div>
-      <p class="buildLabel">Version: v1.8.7-reset / 2026-11-02</p>
+      <p id="menuMicState" class="smallStatus" aria-live="polite"></p>
+      <button type="button" id="menuStopMicButton" class="subtle" hidden>マイクを終了</button>
+      <p class="buildLabel">Version: v1.8.9 / 2026-11-02 (認識継続版)</p>
     </div>
   </main>
 
@@ -80,7 +84,8 @@
     <div class="panel">
       <div id="conditionLabel"></div>
       <p id="readyInstruction">画面をタッチして開始<br>マイクへのアクセスを許可してください。</p>
-      <button id="micCheckButton" type="button" class="subtle">マイクの権限・接続を確認</button>
+      <p id="readyMicState" class="smallStatus" aria-live="polite"></p>
+      <button id="readyStopMicButton" type="button" class="subtle" hidden>マイクを終了</button>
       <p id="micCheckStatus" class="smallStatus" aria-live="polite"></p>
       <button id="readyReloadButton" type="button" class="subtle" hidden>ページを再読み込みして復旧</button>
       <button id="readyBackButton" type="button" class="subtle" hidden>条件選択に戻る</button>
@@ -96,28 +101,30 @@
   <section id="processingScreen" class="screen" hidden aria-label="集計中">
     <div class="panel">
       <h1>集計中…</h1>
-      <p class="hint">最後の音声認識結果を確認しています。</p>
+      <p class="hint">音声認識を続けたまま採点します。</p>
     </div>
   </section>
 
   <section id="doneScreen" class="screen" hidden aria-label="結果">
     <div class="resultPanel">
       <h2>測定結果</h2>
-      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.7-reset / 2026-11-02</p>
+      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.9 / 2026-11-02 (認識継続版)</p>
       <div id="score" class="score" aria-live="polite"></div>
       <div id="counts" class="counts"></div>
       <div class="tableWrap"><table class="resultTable">
         <thead><tr><th>回</th><th>表示</th><th>認識</th><th>判定</th><th>初出</th><th>推定</th></tr></thead>
         <tbody id="resultBody"></tbody>
       </table></div>
-      <p class="note" id="methodNote">「初出」は暫定・確定テキストに回答語が初めて現れた時刻から、図形表示開始を差し引いた時間です。認識遅延を含みます。「推定」は初回のspeechstartから求めた認識遅延を一律に差し引いた参考値で、発話開始の実測値ではありません。<br>「北→上・東→右・南・なみ・波→下・西→左」は正式な回答として受け付けます。［候補］は認識語のひらがな読みと方向語の読みが近い場合で、暫定集計に含めます。［要確認］は候補が複数あるため自動採点しません。読みの類似は発話の正しさを保証しません。認識原語と候補をCSVに保存します。回答欄の※は「暫定認識で取得されたが最終確定テキストでは消えた語」、判定欄の※は「推定時刻が図形切替前後0.5秒以内で、試行対応に不確実性がある」を示します。いずれも暫定採点に含めています。各図形の実表示時刻と、最初の音声認識テキストから概算した認識遅延を使って割り当てます。最初の回答が「アルバム」等の対象外語として認識されても、後の「下」「右」などを前のカードへ詰めません。最後の図形が消えてから2秒間も音声を受け付けます。音声認識の遅延は一定ではないため、表示回との対応および発話開始推定は確定値ではありません。</p>
+      <p class="note" id="methodNote">「初出」は暫定・確定テキストに回答語が初めて現れた時刻から、図形表示開始を差し引いた時間です。認識遅延を含みます。「推定」は初回のspeechstartから求めた認識遅延を一律に差し引いた参考値で、発話開始の実測値ではありません。<br>「北→上・東→右・南・なみ・波→下・西→左」は正式な回答として受け付けます。［候補］は認識語のひらがな読みと方向語の読みが近い場合で、暫定集計に含めます。［要確認］は候補が複数あるため自動採点しません。読みの類似は発話の正しさを保証しません。認識原語と候補をCSVに保存します。回答欄の※は「暫定認識で取得されたが最終確定テキストでは消えた語」、判定欄の※は「推定時刻が図形切替前後0.5秒以内で、試行対応に不確実性がある」を示します。いずれも暫定採点に含めています。各図形の実表示時刻と、最初の音声認識テキストから概算した認識遅延を使って割り当てます。最初の回答が「アルバム」等の対象外語として認識されても、後の「下」「右」などを前のカードへ詰めません。最後の図形が消えてから2秒間も回答を受け付け、結果画面では採点だけを休止してマイクを継続します。音声認識の遅延は一定ではないため、表示回との対応および発話開始推定は確定値ではありません。</p>
+      <p id="doneMicState" class="smallStatus micLive" aria-live="polite"></p>
       <p id="resultWarning" class="smallStatus" hidden></p>
       <details class="diagnostics"><summary>認識テキストと時刻のログ</summary><p id="transcriptSummary" class="note"></p><pre id="recognitionLog"></pre></details>
       <div class="actions">
         <button type="button" id="csvButton" class="subtle">結果をCSVで保存</button>
         <button type="button" id="logButton" class="subtle">認識ログをCSVで保存</button>
-        <button type="button" id="retryButton">同じ条件でもう一度</button>
-        <button type="button" id="doneReloadButton" class="subtle">音声が入らない場合：再読み込み</button>
+        <button type="button" id="retryButton">同じ条件でもう一度（マイク継続）</button>
+        <button type="button" id="stopMicButton" class="subtle">マイクを終了</button>
+        <button type="button" id="doneReloadButton" class="subtle">マイク再起動が必要な場合：再読み込み</button>
         <button type="button" id="backButton" class="subtle">条件選択に戻る</button>
       </div>
     </div>
@@ -148,20 +155,19 @@
       blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
     };
     const symbols = ["up", "right", "down", "left", "circle"];
-    const APP_VERSION = "v1.8.7-reset / 2026-11-02";
+    const APP_VERSION = "v1.8.9 / 2026-11-02 (認識継続版)";
     const DISPLAY_MS = 1500;
     const GRACE_MS = 2000;
     // Wait for the recognizer's actual `end` before allowing another test.
     const FINAL_WAIT_MS = 4000;
     const END_FALLBACK_MS = 1800;
-    const RESTART_COOLDOWN_MS = 1800;
+    const RESTART_COOLDOWN_MS = 1800; // 後方互換の定数（通常の再測定では使用しない）
     const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     const screens = Object.fromEntries(["menu", "ready", "play", "processing", "done"].map(k => [k, document.getElementById(k + "Screen")]));
     const symbol = document.getElementById("symbol");
     const symbolPath = document.getElementById("symbolPath");
     const readyInstruction = document.getElementById("readyInstruction");
     const readyBackButton = document.getElementById("readyBackButton");
-    const micCheckButton = document.getElementById("micCheckButton");
     const micCheckStatus = document.getElementById("micCheckStatus");
     const readyReloadButton = document.getElementById("readyReloadButton");
 
@@ -182,44 +188,21 @@
     let recognitionOpening = false, recognitionClosing = false;
     let lastRecognizerEndedAt = -Infinity, restartBlocked = false;
     let stopTimeout = null, forceFinalizeTimeout = null, readyRefreshTimeout = null;
-    let currentMicAudioStarted = false, currentMicResultCount = 0, permissionCheckSerial = 0;
+    let currentMicAudioStarted = false, currentMicResultCount = 0;
     let micStartFallbackTimer = null, recognizerServiceEnded = false;
     let runStartedAt = null, runWarnings = [];
-    // Managed resources: never keep an open permission-check stream between runs.
-    let micCheckStream = null;
-    let navigationStarted = false;
-    let navigationReleaseTimer = null;
-    const RELOAD_SETTLE_MS = 650;
-    const RELOAD_END_TIMEOUT_MS = 1800;
-    const RECOGNITION_EVENTS = ["onstart", "onaudiostart", "onaudioend", "onsoundstart",
-      "onsoundend", "onspeechstart", "onspeechend", "onresult", "onerror", "onend", "onnomatch"];
-    function stopPermissionCheckStream() {
-      const stream = micCheckStream;
-      micCheckStream = null;
-      if (!stream) return;
-      try { stream.getTracks().forEach(track => { try { track.stop(); } catch (_) {} }); } catch (_) {}
-    }
-    function clearReadyRefreshTimer() {
-      if (readyRefreshTimeout !== null) clearTimeout(readyRefreshTimeout);
-      readyRefreshTimeout = null;
-    }
-    function dropExperimentObjects() {
-      order = []; trials = []; resultSlots.clear(); resultSlots = new Map(); recognitionLog = [];
-      snapshots = []; speechStarts = []; finalizedRows = null; timeCalibration = null;
-      detectedCommands = []; transcriptSnapshots = [];
-      archivedFinalWords = []; archivedFinalTranscripts = []; sessionStartIndex = 0;
-      runWarnings = []; runStartedAt = null;
-      stoppingForFinish = false; recognitionActive = false; recognitionOpening = false;
-      recognitionClosing = false; recognizerServiceEnded = false;
-      currentMicAudioStarted = false; currentMicResultCount = 0;
-      microphoneFatal = false; restartCount = 0;
-    }
-    function removeRecognitionHandlers(r) {
-      if (!r) return;
-      for (const key of RECOGNITION_EVENTS) {
-        try { r[key] = null; } catch (_) {}
-      }
-    }
+    // One SpeechRecognition instance lives across multiple runs. We never
+    // stop/restart it between runs. Results received while idle are excluded.
+    let sessionResultLength = 0, runResultFloor = 0;
+    const sessionTranscriptSlots = new Map();
+    let runBaselineTexts = new Map();
+    let micEverStarted = false, micManuallyClosed = false, runInterrupted = false;
+    const menuMicState = document.getElementById("menuMicState");
+    const readyMicState = document.getElementById("readyMicState");
+    const doneMicState = document.getElementById("doneMicState");
+    const menuStopMicButton = document.getElementById("menuStopMicButton");
+    const readyStopMicButton = document.getElementById("readyStopMicButton");
+    const stopMicButton = document.getElementById("stopMicButton");
 
     function showScreen(name) { for (const [key, el] of Object.entries(screens)) el.hidden = key !== name; }
     function warn(text) { if (!runWarnings.includes(text)) runWarnings.push(text); }
@@ -240,61 +223,77 @@
       if (recognition !== r) return;
       clearShutdownWatchdogs();
       // No abort here! The service has already dispatched `end`.
-      removeRecognitionHandlers(r);
+      for (const k of ["onstart","onaudiostart","onaudioend","onspeechstart",
+                       "onresult","onerror","onend"]) r[k] = null;
       recognition = null;
       recognitionActive = recognitionOpening = recognitionClosing = false;
+      currentMicAudioStarted = false;
       recognizerServiceEnded = true;
       lastRecognizerEndedAt = performance.now();
       if (stage === "ready") refreshReadyMessage();
     }
-    function releaseRecognizer() {
-      const r = recognition;
-      if (!r || recognitionClosing) return;
-      // Cancelling an unfinished experiment requires waiting for the end
-      // event; it must NOT be followed immediately by a new start().
-      recognitionClosing = true;
-      try { r.abort(); } catch (_) {}
-      clearShutdownWatchdogs();
-      stopTimeout = setTimeout(() => {
-        if (recognition !== r || !recognitionClosing) return;
-        restartBlocked = true;
-        readyReloadButton.hidden = false;
-        if (stage === "ready") readyInstruction.textContent =
-          "前回の音声認識の終了が確認できません。ページを再読み込みしてから開始してください。";
-      }, FINAL_WAIT_MS);
+    function micIsLive() {
+      return Boolean(recognition && recognitionActive && currentMicAudioStarted &&
+        !recognitionClosing && !micManuallyClosed);
     }
+    function updateMicStatus() {
+      const live = micIsLive();
+      const status = live ? (stage==="running"||stage==="grace" ?
+        "● マイク動作中（採点ON）" : "● マイク動作中（採点OFF・次回も使用）") :
+        (micEverStarted ? "○ マイク停止中（再開にはページ再読み込み）" : "○ マイク未起動");
+      menuMicState.textContent = readyMicState.textContent = doneMicState.textContent = status;
+      menuMicState.className = readyMicState.className = doneMicState.className =
+        "smallStatus " + (live ? "micLive" : "micOff");
+      menuStopMicButton.hidden = !live;
+      readyStopMicButton.hidden = !live;
+      stopMicButton.hidden = !live;
+      document.getElementById("retryButton").textContent = live ?
+        "同じ条件でもう一度（マイク継続）" : "同じ条件でもう一度（再読み込み）";
+    }
+    // Reset only one experiment; keep microphone and its event handlers alive.
     function resetRun() {
-      clearTimers();
-      releaseRecognizer();
+      clearTimers(); clearShutdownWatchdogs();
       order = []; trials = []; resultSlots = new Map(); recognitionLog = [];
       snapshots = []; speechStarts = []; finalizedRows = null; timeCalibration = null;
       detectedCommands = []; transcriptSnapshots = [];
-      stoppingForFinish = false; recognitionActive = false; restartCount = 0;
-      sessionStartIndex=0;archivedFinalWords=[];archivedFinalTranscripts=[];microphoneFatal=false;
+      stoppingForFinish = false; restartCount = 0;
+      sessionStartIndex = 0; archivedFinalWords = []; archivedFinalTranscripts = [];
+      microphoneFatal = false; runInterrupted = false;currentMicResultCount=0;
       runWarnings = []; runStartedAt = null;
+      // All prior speech hypotheses are excluded, including those received in
+      // the results/menu screen. Later results must have a new result index.
+      runResultFloor = sessionResultLength;
+      runBaselineTexts = new Map(Array.from(sessionTranscriptSlots.entries(), ([i,x])=>[i,x.text]));
+    }
+    function stopMicrophone() {
+      if (!recognition || recognitionClosing) return;
+      const r = recognition;
+      micManuallyClosed = true;
+      restartBlocked = true;
+      recognitionClosing = true;
+      updateMicStatus();
+      try { r.stop(); } catch (_) { try { r.abort(); } catch (_) {} }
+      clearShutdownWatchdogs();
+      stopTimeout = setTimeout(() => {
+        if (recognition !== r || !recognitionClosing) return;
+        try { r.abort(); } catch (_) {}
+        // Do not reuse the object even if the browser never dispatches `end`.
+        detachEndedRecognizer(r);
+        updateMicStatus();
+      }, FINAL_WAIT_MS);
     }
     function refreshReadyMessage() {
       if (stage !== "ready") return;
-      readyReloadButton.hidden = !restartBlocked;
-      if (restartBlocked) {
-        readyInstruction.textContent = "音声認識の終了を確認できません。ページを再読み込みしてから実施してください。";
-        return;
-      }
-      if (recognition || recognitionClosing) {
-        readyInstruction.textContent = "前回のマイク終了処理を確認中です…";
-        return;
-      }
-      const wait = RESTART_COOLDOWN_MS - (performance.now() - lastRecognizerEndedAt);
-      if (wait > 0) {
-        readyInstruction.textContent = "マイク解放中…\n準備ができてから画面をタッチしてください。";
-        if (readyRefreshTimeout !== null) clearTimeout(readyRefreshTimeout);
-        readyRefreshTimeout = setTimeout(() => {
-          readyRefreshTimeout = null;
-          refreshReadyMessage();
-        }, Math.ceil(wait) + 25);
+      readyReloadButton.hidden = micIsLive() || !(micEverStarted || restartBlocked);
+      readyBackButton.hidden = false;
+      if (micIsLive()) {
+        readyInstruction.textContent = "画面をタッチして開始\n音声認識は前の測定から継続しています。";
+      } else if (micEverStarted || restartBlocked) {
+        readyInstruction.textContent = "音声認識が終了しています。\n新しく測定するにはページを再読み込みしてください。";
       } else {
         readyInstruction.textContent = "画面をタッチして開始\n上・右・下・左・丸（北・東・南・西も可）を声で回答してください。";
       }
+      updateMicStatus();
     }
     function shuffledSymbols() {
       const a = symbols.slice();
@@ -453,10 +452,10 @@
 
     function chooseCondition(key) {
       if (!conditions[key]) return;
+      if (stage === "running" || stage === "grace" || stage === "starting") return;
       resetRun();
       selected = key; stage = "ready";
       document.getElementById("conditionLabel").textContent = conditions[key].label;
-      readyBackButton.hidden = true;
       micCheckStatus.textContent = "";
       if (!SpeechRecognitionClass) {
         readyInstruction.textContent = "このブラウザはWeb Speech APIに対応していません。";
@@ -470,43 +469,20 @@
       readyBackButton.hidden = false;
       showScreen("ready"); refreshReadyMessage();
     }
-    // Explicit microphone permission check; never hold getUserMedia open
-    // concurrently with Web Speech on iOS (they may interfere).
-    async function checkMicrophone(ev) {
-      ev.stopPropagation();
-      if (stage !== "ready" || recognition || recognitionClosing) return;
-      const n = ++permissionCheckSerial;
-      micCheckButton.disabled = true;
-      micCheckStatus.textContent = "マイクへの接続を確認しています…";
-      let stream = null;
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) throw new Error("getUserMedia非対応");
-        stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        // A delayed permission result must never retain its stream if a
-        // reload/reset was requested while the permission dialog was open.
-        if (n !== permissionCheckSerial || navigationStarted || stage !== "ready") return;
-        micCheckStream = stream;
-        micCheckStatus.textContent = "マイクのアクセス許可を確認しました。音声認識への入力は測定開始後に確認します。";
-        lastRecognizerEndedAt = performance.now();
-        refreshReadyMessage();
-      } catch(err) {
-        if (n === permissionCheckSerial && stage === "ready" && !navigationStarted) {
-          micCheckStatus.textContent = `マイク確認に失敗：${err.name||err.message||"不明"}。Safariのサイト設定とiPhoneのマイク権限を確認してください。`;
-        }
-      } finally {
-        if (stream) {
-          try { stream.getTracks().forEach(track => { try { track.stop(); } catch (_) {} }); } catch (_) {}
-        }
-        if (micCheckStream === stream) micCheckStream = null;
-        if (n === permissionCheckSerial && !navigationStarted) micCheckButton.disabled = false;
-      }
-    }
     function startTest() {
-      if (stage !== "ready" || !selected || !SpeechRecognitionClass || navigationStarted || micCheckButton.disabled) return;
-      if (restartBlocked || recognition || recognitionClosing ||
-          performance.now() - lastRecognizerEndedAt < RESTART_COOLDOWN_MS) {
+      if (stage !== "ready" || !selected || !SpeechRecognitionClass) return;
+      if (recognitionClosing || restartBlocked || (micEverStarted && !micIsLive())) {
         refreshReadyMessage(); return;
       }
+      // Reusing the microphone never calls start() a second time.
+      if (micIsLive()) {
+        resetRun();
+        stage = "starting";
+        recognitionLog.push({at:performance.now(),kind:"recognition-reused",index:"",final:"",text:"継続セッション"});
+        beginStimuli();
+        return;
+      }
+      if (recognition) return;
       resetRun();
       stage = "starting";
       readyInstruction.textContent = "音声認識を起動中…\n開始後に図形を表示します。";
@@ -520,106 +496,135 @@
       currentMicAudioStarted = false;
       currentMicResultCount = 0;
       recognizerServiceEnded = false;
-      const logLifecycle = (kind,text="") => recognitionLog.push({at:performance.now(),kind,index:"",final:"",text});
+      const logLifecycle = (kind,text="") => {
+        if (["starting","running","grace","stopping"].includes(stage))
+          recognitionLog.push({at:performance.now(),kind,index:"",final:"",text});
+      };
       r.onstart = () => {
         if (recognition !== r) return;
-        recognitionOpening = false; recognitionActive = true; recognizerServiceEnded = false;
-        logLifecycle("recognition-start");
+        recognitionOpening = false; recognitionActive = true; micEverStarted = true;
+        recognizerServiceEnded = false;
+        logLifecycle("recognition-start"); updateMicStatus();
         if (stage === "starting") {
-          if(currentMicAudioStarted)beginStimuli();
-          else micStartFallbackTimer=setTimeout(()=>{
-            micStartFallbackTimer=null;
-            if(recognition===r && stage==="starting") {
-              warn("音声入力開始（audiostart）イベントを確認できませんでした。端末によっては通知がありません。");
+          if (currentMicAudioStarted) beginStimuli();
+          else micStartFallbackTimer = setTimeout(() => {
+            micStartFallbackTimer = null;
+            if (recognition === r && stage === "starting") {
+              warn("audiostartを確認できません。音声認識サービスの開始通知に基づいて表示を開始します。");
               beginStimuli();
             }
-          },900);
+          }, 900);
         }
       };
       r.onaudiostart = () => {
         if (recognition !== r) return;
         currentMicAudioStarted = true;
-        logLifecycle("audio-start");
-        if(stage==="starting" && recognitionActive)beginStimuli();
+        logLifecycle("audio-start");updateMicStatus();
+        if (stage === "starting" && recognitionActive) beginStimuli();
       };
-      r.onaudioend = () => {if (recognition === r) logLifecycle("audio-end");};
+      r.onaudioend = () => {
+        if (recognition !== r) return;
+        currentMicAudioStarted = false;
+        logLifecycle("audio-end");updateMicStatus();
+      };
       r.onspeechstart = () => {
-        if (recognition === r) {
-          const at=performance.now(); speechStarts.push(at);
+        if (recognition !== r) return;
+        const at = performance.now();
+        if (["running","grace","stopping"].includes(stage)) {
+          speechStarts.push(at);
           recognitionLog.push({at,kind:"speechstart",index:"",final:"",text:""});
         }
       };
       r.onresult = ev => {
-        if (recognition !== r || !["running","grace","stopping"].includes(stage)) return;
-        currentMicResultCount++;
-        const at=performance.now();
-        const from=Number.isInteger(ev.resultIndex)?ev.resultIndex:0;
-        for(let i=from;i<ev.results.length;i++) {
-          const item=ev.results[i];
-          if(!item?.[0])continue;
-          const raw=String(item[0].transcript||"").trim();
-          resultSlots.set(i,{text:raw,isFinal:!!item.isFinal,updatedAt:at});
-          recognitionLog.push({at,kind:"result",index:i,final:item.isFinal?"確定":"暫定",text:raw});
+        if (recognition !== r) return;
+        const wasActive = ["running","grace","stopping"].includes(stage);
+        const fromIndex = Number.isInteger(ev.resultIndex) ? ev.resultIndex : 0;
+        if (wasActive && ev.results.length < runResultFloor) {
+          // WebKit occasionally resets the result list even though the mic
+          // session continues. Treat the new indices as a new transcript.
+          runResultFloor = 0;
+          runBaselineTexts.clear();
+          warn("認識結果の番号がリセットされました。時刻対応に注意してください。");
         }
-        for(const i of Array.from(resultSlots.keys()))
-          if(i>=ev.results.length)resultSlots.delete(i);
+        const at = performance.now();
+        // Update the session transcript even when scoring is OFF. This creates
+        // a clean baseline for the next test and excludes idle speech.
+        for (let i=fromIndex;i<ev.results.length;i++) {
+          const item = ev.results[i];
+          if (!item?.[0]) continue;
+          const raw=String(item[0].transcript||"").trim();
+          sessionTranscriptSlots.set(i,{text:raw,isFinal:!!item.isFinal});
+          if (!wasActive) continue;
+          const baseline = runBaselineTexts.get(i) ?? "";
+          let fresh = raw;
+          if (i < runResultFloor && baseline) {
+            // The engine may append the next response to an OLD result slot.
+            // Remove the transcript as it existed before this run.
+            if (raw.startsWith(baseline)) fresh=raw.slice(baseline.length).trim();
+            else if (baseline.startsWith(raw)) fresh="";
+            else {
+              let j=0;
+              while(j<baseline.length && j<raw.length && baseline[j]===raw[j])j++;
+              fresh=raw.slice(j).trim();
+              warn("前回の認識テキストが書き換えられました。差分だけ採点候補にしています。");
+            }
+          }
+          if (fresh) {
+            resultSlots.set(i,{text:fresh,isFinal:!!item.isFinal,updatedAt:at});
+            recognitionLog.push({at,kind:"result",index:i,final:item.isFinal?"確定":"暫定",text:fresh});
+          } else resultSlots.delete(i);
+        }
+        sessionResultLength = ev.results.length;
+        for (const i of Array.from(sessionTranscriptSlots.keys()))
+          if (i>=ev.results.length) sessionTranscriptSlots.delete(i);
+        if (!wasActive) return;
+        currentMicResultCount++;
+        for (const i of Array.from(resultSlots.keys()))
+          if (i>=ev.results.length) resultSlots.delete(i);
         snapshots.push({at,words:getCurrentWords()});
-        captureSnapshotCommands(at,from);
+        captureSnapshotCommands(at,fromIndex);
       };
       r.onerror = ev => {
-        if(recognition!==r)return;
-        const code=ev.error||"unknown",at=performance.now();
-        recognitionLog.push({at,kind:"error",index:"",final:"",text:code});
-        if(code==="not-allowed"||code==="service-not-allowed"||code==="audio-capture") {
-          microphoneFatal=true;
-          if(stage==="starting") showReadyError(`マイクの利用に失敗しました（${code}）。`);
-          else warn(`音声認識が停止しました（${code}）。マイクの権限・接続を確認してください。`);
-        } else warn(`音声認識イベント：${code}`);
+        if (recognition !== r) return;
+        const code = ev.error||"unknown";
+        logLifecycle("error",code);
+        if (["not-allowed","service-not-allowed","audio-capture"].includes(code)) {
+          microphoneFatal = true;
+          if (stage==="running" || stage==="grace")
+            warn(`音声認識が停止しました（${code}）。測定結果は不完全です。`);
+        } else if (code!=="no-speech") warn(`音声認識イベント：${code}`);
       };
       r.onend = () => {
-        if(recognition!==r)return;
-        recognitionActive=false; recognitionOpening=false; recognizerServiceEnded=true;
+        if (recognition !== r) return;
+        recognitionActive = false; recognitionOpening = false;
+        currentMicAudioStarted = false; recognizerServiceEnded = true;
         logLifecycle("recognition-end");
-        if (recognitionClosing) {
-          detachEndedRecognizer(r); return;
+        const closedByUser = recognitionClosing;
+        detachEndedRecognizer(r);
+        restartBlocked = true; // Do not restart Web Speech in this document.
+        updateMicStatus();
+        if (stage==="starting") {
+          showReadyError("音声認識が開始直後に終了しました。再読み込みして再試行してください。");
+        } else if (stage==="running" || stage==="grace") {
+          runInterrupted = true;
+          warn("測定途中で音声認識が自動終了しました。未取得の回答があるため、この測定は不完全です。");
+          clearTimers();stage="stopping";finishTest();
+        } else if (stage==="ready") {
+          refreshReadyMessage();
         }
-        if (stage === "stopping") {
-          detachEndedRecognizer(r);
-          if(stoppingForFinish) finishTest();
-          return;
+        if (!closedByUser && stage==="done") {
+          const note = document.getElementById("resultWarning");
+          note.hidden = false;
+          note.textContent = (note.textContent?note.textContent+"\n":"")+
+            "音声認識が自動終了しました。次の測定にはページの再読み込みが必要です。";
         }
-        if(stage==="starting") {
-          detachEndedRecognizer(r);
-          showReadyError("音声認識を開始できませんでした。マイクを確認して再試行してください。");return;
-        }
-        if(stage!=="running"&&stage!=="grace") {
-          detachEndedRecognizer(r); return;
-        }
-        if(microphoneFatal){
-          warn("マイク入力に失敗しました。今回の測定結果は音声取得不完全です。");
-          detachEndedRecognizer(r);return;
-        }
-        // During a run, the engine may end on silence. Reopen only after
-        // its actual end event, never while a previous session is closing.
-        restartCount++;
-        if(restartCount>8){warn("音声認識が何度も終了しました。認識の欠落がある可能性があります。");detachEndedRecognizer(r);return;}
-        restartTimer=setTimeout(()=>{
-          restartTimer=null;
-          if(recognition!==r || !(stage==="running"||stage==="grace"))return;
-          const previous=getFinalWords();
-          archivedFinalWords.push(...previous.currentTokens);
-          if(previous.currentTranscript)archivedFinalTranscripts.push(previous.currentTranscript);
-          sessionStartIndex=detectedCommands.length;
-          resultSlots.clear();
-          recognitionOpening=true;recognizerServiceEnded=false;currentMicAudioStarted=false;
-          try{r.start();logLifecycle("recognition-restart-request");}
-          catch(e){recognitionOpening=false;warn(`音声認識の再開に失敗：${e.name||"error"}`);}
-        },350);
       };
-      try { r.start();logLifecycle("start-request"); }
+      try { r.start(); logLifecycle("start-request"); }
       catch (e) {
-        recognitionOpening=false; detachEndedRecognizer(r);
-        showReadyError(`音声認識を開始できません（${e.name || "error"}）。`);
+        recognitionOpening=false;
+        detachEndedRecognizer(r);
+        micEverStarted=true;restartBlocked=true;
+        showReadyError(`音声認識を開始できません（${e.name||"error"}）。再読み込みしてください。`);
       }
     }
     // Keep the literal spelling of each recognized word so that ASR aliases
@@ -649,7 +654,7 @@
       if(micStartFallbackTimer!==null){clearTimeout(micStartFallbackTimer);micStartFallbackTimer=null;}
       order = shuffledSymbols(); trials = []; runStartedAt = new Date().toISOString();
       recognitionLog.push({at:performance.now(),kind:"app-version",index:"",final:"",text:APP_VERSION});
-      stage = "running"; showScreen("play");
+      stage = "running"; showScreen("play");updateMicStatus();
       rafId = requestAnimationFrame(() => showTrial(0));
     }
     function showTrial(i) {
@@ -675,39 +680,17 @@
       // Give the participant two more seconds to answer it.
       showScreen("processing");
       document.querySelector("#processingScreen h1").textContent="最後の回答を受付中";
-      document.querySelector("#processingScreen .hint").textContent="図形表示終了後も2秒間、音声認識を継続します。";
+      document.querySelector("#processingScreen .hint").textContent="あと2秒だけ回答を採点します。マイク自体は終了後も継続します。";
       recognitionLog.push({at:performance.now(),kind:"grace-start",index:"",final:"",text:""});
       timerId=setTimeout(stopAndFinalize,GRACE_MS);
     }
     function stopAndFinalize() {
-      if(stage!=="grace")return;
+      if (stage!=="grace")return;
       stage="stopping";stoppingForFinish=true;
-      document.querySelector("#processingScreen h1").textContent="集計中…";
-      document.querySelector("#processingScreen .hint").textContent="音声認識の終了を確認しています。";
-      recognitionLog.push({at:performance.now(),kind:"stop-request",index:"",final:"",text:""});
-      const r = recognition;
-      if (!r) {finishTest();return;}
-      // Recognition may have ended naturally during the short restart delay.
-      if (recognizerServiceEnded && !recognitionOpening) {
-        if(restartTimer!==null){clearTimeout(restartTimer);restartTimer=null;}
-        detachEndedRecognizer(r);finishTest();return;
-      }
-      // stop() tries to flush a final transcript. Do not abort on success.
-      try { r.stop(); } catch(e) {warn(`停止要求エラー：${e.name||"error"}`);}
-      clearShutdownWatchdogs();
-      stopTimeout = setTimeout(() => {
-        if(stage!=="stopping" || recognition!==r)return;
-        restartBlocked=true;
-        warn("音声認識のendが所定時間内に届きませんでした。Safariの再読み込みを推奨します。");
-        recognitionLog.push({at:performance.now(),kind:"end-timeout",index:"",final:"",text:""});
-        try{r.abort();}catch(_){}
-        // Avoid hanging indefinitely; but never treat this as a clean stop.
-        forceFinalizeTimeout=setTimeout(()=>{
-          if(stage!=="stopping" || recognition!==r)return;
-          warn("音声認識の終了が確認できていません。安全な再測定には再読み込みしてください。");
-          finishTest();
-        },END_FALLBACK_MS);
-      },FINAL_WAIT_MS);
+      recognitionLog.push({at:performance.now(),kind:"grading-paused",index:"",final:"",text:"マイクは継続"});
+      // Do not call stop()/abort(): recognizer is shared with the next run.
+      // Capture interim hypotheses as of this 2-second cutoff.
+      finishTest();
     }
     function getFinalWords() {
       const entries = Array.from(resultSlots.entries()).sort((a,b)=>a[0]-b[0]);
@@ -956,7 +939,9 @@
       if (detectedCommands.some(c=>c.sameEventWords>1))
         warn("複数の回答語が同一イベントで初出しています。個別の発話時刻は復元できません。");
       if (restartCount>0) warn(`認識エンジンが${restartCount}回再起動しました。イベント間の空白では未検出の可能性があります。`);
-      document.getElementById("score").textContent=`正解 ${correct} / ${rows.length} 問（暫定・補正候補を含む）`;
+      document.getElementById("score").textContent =
+        (runInterrupted ? "測定中断・参考値：" : "")+
+        `正解 ${correct} / ${rows.length} 問（暫定・補正候補を含む）`;
       document.getElementById("counts").textContent=`不正解 ${wrong}　認識なし ${missing}　要確認 ${uncertain}　補正候補 ${candidateCount}　時刻対応注意 ${rows.filter(r=>r.ambiguousMapping).length}`;
       const body=document.getElementById("resultBody");body.replaceChildren();
       const labels={correct:"正解",incorrect:"不正解",missing:"認識なし",uncertain:"要確認"};
@@ -989,15 +974,14 @@
         recognitionLog.map(e=>`${((e.at-base)/1000).toFixed(3)}秒  ${e.kind} ${e.index} ${e.final} ${e.text}`).join("\n")||"記録なし";
       const note=document.getElementById("resultWarning");
       note.hidden=!runWarnings.length;note.textContent=runWarnings.join("\n");
-      showScreen("done");
+      showScreen("done");updateMicStatus();
       if(currentMicResultCount===0) {
         const msg="音声認識結果が0件です。マイク権限またはiPhoneの音声認識エンジンの問題が考えられます。再読み込みしてから再実験してください。";
         if (!runWarnings.includes(msg))runWarnings.push(msg);
         note.hidden=false;note.textContent=runWarnings.join("\n");
       }
-      // The only normal completion path has already received `end`, so its
-      // recognizer has been detached without aborting. A timeout leaves
-      // restartBlocked=true to prevent a second run with a live microphone.
+      // The recognizer remains active on the results screen and is reused on
+      // the next run. Only the scoring window has been paused.
     }
     function csvFile(rows,name){
       const data="\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(",")).join("\r\n");
@@ -1045,96 +1029,51 @@
       const b=ev.target.closest("button[data-condition]");if(b)chooseCondition(b.dataset.condition);
     });
     screens.ready.addEventListener("click",startTest);
-    // Completely retire this document's JS-side microphone resources before
-    // loading a fresh document. This avoids reusing a SpeechRecognition instance
-    // and prevents a previous run's timers/callbacks from reaching the next run.
-    function navigateToFresh(url) { window.location.replace(url); }
-    function reloadForRetry(mode = selected) {
-      if (navigationStarted) return;
-      navigationStarted = true;
-      stage = "reloading";
-      showScreen("processing");
-      document.querySelector("#processingScreen h1").textContent = "音声認識を解放中…";
-      document.querySelector("#processingScreen .hint").textContent = "新しいページで再測定の準備をします。";
-      // Save only the display condition in the URL; all JS measurement state
-      // is discarded and a new document builds a fresh recognizer on the next tap.
-      const next = new URL(window.location.href);
-      if (mode && conditions[mode]) next.searchParams.set("retry", mode);
-      else next.searchParams.delete("retry");
-      next.searchParams.set("voiceBuild", "187-reset");
-      next.searchParams.set("fresh", Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8));
-      const nextUrl = next.href;
-
-      ++permissionCheckSerial;
-      clearTimers();
-      clearShutdownWatchdogs();
-      clearReadyRefreshTimer();
-      stopPermissionCheckStream();
-      const oldRecognizer = recognition;
-      recognition = null;
-      dropExperimentObjects();
-      let finished = false;
-      const finishRelease = () => {
-        if (finished) return;
-        finished = true;
-        if (navigationReleaseTimer !== null) clearTimeout(navigationReleaseTimer);
-        navigationReleaseTimer = null;
-        removeRecognitionHandlers(oldRecognizer);
-        // Give WebKit a short interval to release its audio service, then
-        // load a distinct URL (not a bfcache restore of the old document).
-        setTimeout(() => navigateToFresh(nextUrl), RELOAD_SETTLE_MS);
-      };
-      if (!oldRecognizer) {
-        finishRelease();
-        return;
-      }
-      removeRecognitionHandlers(oldRecognizer);
-      // `abort` is only used for still-active / hung sessions. A normally
-      // finished run has already set recognition=null via its `end` callback.
-      try { oldRecognizer.onend = finishRelease; } catch (_) {}
-      navigationReleaseTimer = setTimeout(finishRelease, RELOAD_END_TIMEOUT_MS);
-      try { oldRecognizer.abort(); } catch (_) { finishRelease(); }
-    }
-    // Free audio resources even when the tab is closed or the user navigates
-    // elsewhere. These are our JS references; the browser owns WebKit internals.
-    window.addEventListener("pagehide", () => {
-      ++permissionCheckSerial;
-      clearTimers();
-      clearShutdownWatchdogs();
-      clearReadyRefreshTimer();
-      if (navigationReleaseTimer !== null) clearTimeout(navigationReleaseTimer);
-      navigationReleaseTimer = null;
-      stopPermissionCheckStream();
-      const oldRecognizer = recognition;
-      recognition = null;
-      removeRecognitionHandlers(oldRecognizer);
-      if (oldRecognizer) { try { oldRecognizer.abort(); } catch (_) {} }
-      dropExperimentObjects();
+    readyBackButton.addEventListener("click",ev=>{
+      ev.stopPropagation(); resetRun();selected=null;stage="menu";
+      showScreen("menu"); updateMicStatus();
     });
-    // Safari may restore a frozen page from its back/forward cache. Do not
-    // resume a discarded microphone session; load a genuinely fresh document.
-    window.addEventListener("pageshow", ev => {
-      if (!ev.persisted) return;
+    function reloadForRetry() {
+      stopMicrophone();
       const url = new URL(window.location.href);
-      url.searchParams.set("fresh", Date.now().toString(36) + "-restore");
-      navigateToFresh(url.href);
+      if (selected && conditions[selected])url.searchParams.set("retry",selected);
+      url.searchParams.set("voiceBuild","189");
+      url.searchParams.set("session",String(Date.now()));
+      window.location.assign(url.href);
+    }
+    document.getElementById("retryButton").addEventListener("click",()=>{
+      if (!micIsLive()) {reloadForRetry();return;}
+      chooseCondition(selected); // This does NOT stop/start recognition.
     });
-    document.getElementById("retryButton").addEventListener("click", () => reloadForRetry(selected));
-    micCheckButton.addEventListener("click", checkMicrophone);
-    readyReloadButton.addEventListener("click", ev => { ev.stopPropagation(); reloadForRetry(selected); });
-    document.getElementById("doneReloadButton").addEventListener("click", () => reloadForRetry(selected));
-    document.getElementById("backButton").addEventListener("click", () => reloadForRetry(null));
-    // Also reset the entire document when going back from an interrupted run.
-    readyBackButton.addEventListener("click", ev => { ev.stopPropagation(); reloadForRetry(null); });
+    readyReloadButton.addEventListener("click",ev=>{ev.stopPropagation();reloadForRetry();});
+    document.getElementById("doneReloadButton").addEventListener("click",reloadForRetry);
+    function endMicButtonClick(ev) {
+      ev.stopPropagation();stopMicrophone();
+      if (stage==="ready")refreshReadyMessage();else updateMicStatus();
+    }
+    menuStopMicButton.addEventListener("click",endMicButtonClick);
+    readyStopMicButton.addEventListener("click",endMicButtonClick);
+    stopMicButton.addEventListener("click",endMicButtonClick);
+    document.getElementById("backButton").addEventListener("click",()=>{
+      resetRun();selected=null;stage="menu";showScreen("menu");updateMicStatus();
+    });
     document.getElementById("csvButton").addEventListener("click",downloadCsv);
     document.getElementById("logButton").addEventListener("click",downloadLog);
     document.addEventListener("visibilitychange",()=>{
-      if(document.hidden && (stage==="starting"||stage==="running"||stage==="grace")) showReadyError("画面が非表示になったため測定を中断しました。");
+      if (document.hidden && (stage==="starting"||stage==="running"||stage==="grace")) {
+        runInterrupted=true;
+        warn("画面が非表示になり測定を中断しました。");
+        clearTimers();stage="stopping";finishTest();
+      }
     });
-    // Preserve the selected mode when a retry reloads the page on iPhone.
+    window.addEventListener("pagehide",()=>{
+      // Navigating away must never leave an app-owned session open.
+      if(recognition){try{recognition.abort();}catch(_){} }
+    });
     const retryMode = new URL(location.href).searchParams.get("retry");
     if(retryMode && conditions[retryMode]) chooseCondition(retryMode);
     else showScreen("menu");
+    updateMicStatus();
   </script>
 </body>
 </html>

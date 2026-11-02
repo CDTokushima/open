@@ -1,1 +1,266 @@
-peripheral vision test
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>周辺視野テスト</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #ffffff;
+      color: #111111;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .screen {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(env(safe-area-inset-top), 16px) max(env(safe-area-inset-right), 20px)
+               max(env(safe-area-inset-bottom), 16px) max(env(safe-area-inset-left), 20px);
+      background: #ffffff;
+    }
+    .screen[hidden] { display: none !important; }
+    .panel { width: min(100%, 380px); text-align: center; }
+    h1 { margin: 0 0 10px; font-size: clamp(25px, 6vw, 32px); font-weight: 700; }
+    .hint { margin: 0 0 28px; font-size: 15px; color: #555555; line-height: 1.7; }
+    .menu { display: grid; gap: 12px; }
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px 12px;
+      min-height: 54px;
+      background: #ffffff;
+      border: 2px solid #222222;
+      border-radius: 10px;
+      color: #111111;
+      font: inherit;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:focus-visible { outline: 3px solid #0070c0; outline-offset: 3px; }
+    button:active { background: #eeeeee; }
+    #readyScreen { cursor: pointer; }
+    #conditionLabel { font-size: clamp(38px, 9vw, 54px); font-weight: 700; }
+    #readyInstruction { margin-top: 30px; font-size: 19px; color: #555555; }
+    #playScreen { padding: 0; }
+    #symbol {
+      display: block;
+      width: min(96vw, 75dvh, 540px);
+      height: auto;
+      aspect-ratio: 1;
+      overflow: visible;
+    }
+    #symbolPath { fill: currentColor; stroke: currentColor; stroke-width: 1.5; }
+    #doneScreen h2 { margin: 0 0 15px; font-size: 42px; }
+    #doneScreen .hint { margin-bottom: 34px; }
+    #doneScreen button + button { margin-top: 14px; }
+    @media (max-height: 580px) {
+      .hint { margin-bottom: 16px; }
+      .menu { gap: 8px; }
+      button { min-height: 45px; padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 1. 条件選択画面 -->
+  <main id="menuScreen" class="screen">
+    <div class="panel">
+      <h1>周辺視野テスト</h1>
+      <p class="hint">表示する図形の条件を選択してください。</p>
+      <div class="menu" id="conditionButtons">
+        <button type="button" data-condition="basic">(1) 基本</button>
+        <button type="button" data-condition="large">(2) 大</button>
+        <button type="button" data-condition="green">(3) 緑</button>
+        <button type="button" data-condition="red">(4) 赤</button>
+        <button type="button" data-condition="blue">(5) 青</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 2. 待機画面。画面のどこをタッチしても開始 -->
+  <section id="readyScreen" class="screen" hidden aria-label="開始待機">
+    <div class="panel">
+      <div id="conditionLabel"></div>
+      <p id="readyInstruction">画面をタッチして開始</p>
+    </div>
+  </section>
+
+  <!-- 3. 図形表示画面。余計な文字や操作ボタンは表示しない -->
+  <section id="playScreen" class="screen" hidden aria-label="テスト実行中">
+    <svg id="symbol" viewBox="0 0 540 540" role="img" aria-label="表示図形">
+      <path id="symbolPath" d=""></path>
+    </svg>
+  </section>
+
+  <!-- 4. 終了画面 -->
+  <section id="doneScreen" class="screen" hidden>
+    <div class="panel">
+      <h2>終了</h2>
+      <p class="hint">5種類の図形を表示しました。</p>
+      <button id="retryButton" type="button">同じ条件でもう一度</button>
+      <button id="backButton" type="button">条件選択に戻る</button>
+    </div>
+  </section>
+
+  <script>
+    "use strict";
+
+    // 「周辺視野テスト.pdf」をもとにした図形。
+    // 上向き矢印を唯一の原図形とし、中心 (270, 269.71) の回転で
+    // 右・下・左を生成する。座標の丸め誤差による方向差は発生しない。
+    // 全方向の長さは、基本・大ともに 476.04 − 63.38 = 412.66 (SVG単位)。
+    const shapes = {
+      basic: {
+        arrow: "M 177.48 155.92 L 270 63.38 L 362.52 155.92 L 316.26 155.92 L 316.26 476.04 L 223.74 476.04 L 223.74 155.92 Z",
+        circle:"M 181.8 270.07 C 181.8 221.14 221.29 181.49 270 181.49 C 318.71 181.49 358.2 221.14 358.2 270.07 C 358.2 318.99 318.71 358.65 270 358.65 C 221.29 358.65 181.8 318.99 181.8 270.07 Z"
+      },
+      large: {
+        arrow: "M 137.16 229.88 L 270 63.38 L 402.84 229.88 L 336.42 229.88 L 336.42 476.04 L 203.58 476.04 L 203.58 229.88 Z",
+        circle:"M 145.08 270.07 C 145.08 200.86 201.01 144.76 270 144.76 C 338.99 144.76 394.92 200.86 394.92 270.07 C 394.92 339.28 338.99 395.38 270 395.38 C 201.01 395.38 145.08 339.28 145.08 270.07 Z"
+      }
+    };
+    const directionAngles = { up: 0, right: 90, down: 180, left: 270 };
+
+    const conditions = {
+      basic: { label: "(1) 基本", shapeSet: "basic", color: "#000000" },
+      large: { label: "(2) 大",   shapeSet: "large", color: "#000000" },
+      green: { label: "(3) 緑",   shapeSet: "basic", color: "#4ea72e" },
+      red:   { label: "(4) 赤",   shapeSet: "basic", color: "#ff0000" },
+      blue:  { label: "(5) 青",   shapeSet: "basic", color: "#0070c0" }
+    };
+
+    const DISPLAY_MS = 1500;
+    const symbols = ["up", "right", "down", "left", "circle"];
+    const screens = {
+      menu: document.getElementById("menuScreen"),
+      ready: document.getElementById("readyScreen"),
+      play: document.getElementById("playScreen"),
+      done: document.getElementById("doneScreen")
+    };
+    const symbol = document.getElementById("symbol");
+    const symbolPath = document.getElementById("symbolPath");
+    const conditionLabel = document.getElementById("conditionLabel");
+    const readyInstruction = document.getElementById("readyInstruction");
+
+    let selected = null;
+    let order = [];
+    let index = 0;
+    let nextSwitch = 0;
+    let timerId = null;
+    let running = false;
+
+    function showScreen(name) {
+      for (const [key, element] of Object.entries(screens)) {
+        element.hidden = key !== name;
+      }
+    }
+
+    function stopTimer() {
+      if (timerId !== null) clearTimeout(timerId);
+      timerId = null;
+      running = false;
+    }
+
+    // Fisher–Yates：5図形を重複なし・ランダムな順番にする。
+    function shuffledSymbols() {
+      const result = symbols.slice();
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
+    function chooseCondition(key) {
+      if (!conditions[key]) return;
+      stopTimer();
+      selected = key;
+      conditionLabel.textContent = conditions[key].label;
+      readyInstruction.textContent = "画面をタッチして開始";
+      showScreen("ready");
+    }
+
+    function drawSymbol(name) {
+      const setting = conditions[selected];
+      symbol.style.color = setting.color;
+      const shape = shapes[setting.shapeSet];
+      if (name === "circle") {
+        symbolPath.setAttribute("d", shape.circle);
+        symbolPath.removeAttribute("transform");
+      } else {
+        symbolPath.setAttribute("d", shape.arrow);
+        symbolPath.setAttribute("transform", `rotate(${directionAngles[name]} 270 269.71)`);
+      }
+      const accessibleNames = { up: "上", right: "右", down: "下", left: "左", circle: "丸" };
+      symbol.setAttribute("aria-label", accessibleNames[name]);
+    }
+
+    function advance() {
+      if (!running) return;
+      index++;
+      if (index >= order.length) {
+        stopTimer();
+        showScreen("done");
+        return;
+      }
+      drawSymbol(order[index]);
+      nextSwitch += DISPLAY_MS;
+      scheduleNext();
+    }
+
+    function scheduleNext() {
+      timerId = setTimeout(advance, Math.max(0, nextSwitch - performance.now()));
+    }
+
+    function startTest() {
+      if (selected === null || running || screens.ready.hidden) return;
+      order = shuffledSymbols();
+      index = 0;
+      running = true;
+      drawSymbol(order[index]);
+      showScreen("play");
+      nextSwitch = performance.now() + DISPLAY_MS;
+      scheduleNext();
+    }
+
+    // 条件選択ボタンを押すと待機状態になる。選択時には開始しない。
+    document.getElementById("conditionButtons").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-condition]");
+      if (button) chooseCondition(button.dataset.condition);
+    });
+    screens.ready.addEventListener("click", startTest);
+    document.getElementById("retryButton").addEventListener("click", () => chooseCondition(selected));
+    document.getElementById("backButton").addEventListener("click", () => {
+      stopTimer();
+      selected = null;
+      showScreen("menu");
+    });
+
+    // 実験中にブラウザのタブを切り替えた場合、途中の試行は破棄する。
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && running) {
+        stopTimer();
+        readyInstruction.textContent = "中断されました。タッチして最初から再開";
+        showScreen("ready");
+      }
+    });
+
+    showScreen("menu");
+  </script>
+</body>
+</html>

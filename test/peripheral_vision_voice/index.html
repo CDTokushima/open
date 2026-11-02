@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <title>周辺視野テスト（音声回答）</title>
+  <title>周辺視野テスト v1.8.5 (2026-11-02)</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
     * { box-sizing: border-box; }
@@ -34,25 +34,37 @@
     #doneScreen h2 { text-align: center; margin: 4px 0 10px; font-size: 29px; }
     .score { text-align: center; font-size: 21px; margin: 12px 0; font-weight: 700; }
     .counts { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 8px 0 20px; font-size: 14px; }
-    .resultTable { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .tableWrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .resultTable { border-collapse: collapse; width: 100%; table-layout:fixed; font-size: 13px; font-variant-numeric: tabular-nums; }
     .resultTable th, .resultTable td { padding: 11px 5px; border-bottom: 1px solid #ddd; text-align: center; }
-    .resultTable th { background: #f2f4f6; font-weight: 600; }
+    .resultTable th { background: #f2f4f6; font-weight: 600; white-space: nowrap; }
     .resultTable td.raw { text-align: left; word-break: break-word; max-width: 130px; }
     .resultTable .ok { color: #117239; font-weight: 700; }
     .resultTable .ng { color: #ba2c2c; font-weight: 700; }
     .resultTable .na { color: #666; }
     .note { margin: 12px 0 18px; color: #555; font-size: 12px; line-height: 1.6; }
     .actions { display: grid; gap: 10px; margin-top: 18px; }
-    .smallStatus { margin: 12px 0 0; font-size: 13px; color: #555; text-align: center; }
+    .buildLabel { font-size:12px; color:#666; margin-top:14px; text-align:center; font-variant-numeric:tabular-nums; }
+    .smallStatus { margin: 12px 0 0; font-size: 13px; color: #555; text-align: center; line-height: 1.7; white-space: pre-line; }
+    .diagnostics { border-top: 1px solid #ddd; padding: 12px 0; margin-top: 16px; font-size: 13px; }
+    .diagnostics summary { cursor: pointer; font-weight: 600; }
+    .diagnostics pre { max-height: 200px; overflow: auto; font: 12px/1.5 monospace; white-space: pre-wrap; background: #f5f6f7; text-align: left; padding: 10px; }
+    .resultTable .warn { color: #775600; font-weight: 600; }
+    .resultTable th:nth-child(1), .resultTable td:nth-child(1) { width: 7%; }
+    .resultTable th:nth-child(2), .resultTable td:nth-child(2) { width: 11%; }
+    .resultTable th:nth-child(3), .resultTable td:nth-child(3) { width: 13%; }
+    .resultTable th:nth-child(4), .resultTable td:nth-child(4) { width: 21%; }
+    .resultTable th:nth-child(5), .resultTable td:nth-child(5) { width: 24%; }
+    .resultTable th:nth-child(6), .resultTable td:nth-child(6) { width: 24%; }
     @media (max-height: 580px) { .menu { gap: 8px; } button { min-height: 45px; padding: 8px; } }
-    @media (max-width: 355px) { .resultTable { font-size: 12px; } .resultTable th, .resultTable td { padding: 8px 3px; } }
+    @media (max-width: 420px) { .resultTable { font-size: 11px; } .resultTable th, .resultTable td { padding: 9px 2px; } }
   </style>
 </head>
 <body>
   <main id="menuScreen" class="screen">
     <div class="panel">
       <h1>周辺視野テスト</h1>
-      <p class="hint">条件を選択してください。<br>上・右・下・左・丸を声で回答します。</p>
+      <p class="hint">条件を選択してください。<br>上・右・下・左・丸（北・東・南・西も可）を声で回答します。</p>
       <div class="menu" id="conditionButtons">
         <button type="button" data-condition="basic">(1) 基本</button>
         <button type="button" data-condition="large">(2) 大</button>
@@ -60,6 +72,7 @@
         <button type="button" data-condition="red">(4) 赤</button>
         <button type="button" data-condition="blue">(5) 青</button>
       </div>
+      <p class="buildLabel">Version: v1.8.5 / 2026-11-02</p>
     </div>
   </main>
 
@@ -87,16 +100,19 @@
   <section id="doneScreen" class="screen" hidden aria-label="結果">
     <div class="resultPanel">
       <h2>測定結果</h2>
+      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.5 / 2026-11-02</p>
       <div id="score" class="score" aria-live="polite"></div>
       <div id="counts" class="counts"></div>
-      <table class="resultTable">
-        <thead><tr><th>回</th><th>表示</th><th>回答（認識）</th><th>判定</th><th>反応時間</th></tr></thead>
+      <div class="tableWrap"><table class="resultTable">
+        <thead><tr><th>回</th><th>表示</th><th>認識</th><th>判定</th><th>初出</th><th>推定</th></tr></thead>
         <tbody id="resultBody"></tbody>
-      </table>
-      <p class="note">反応時間は図形の表示から音声の検出までの概算です。発話開始イベントが得られないときは、音声認識結果の受信時刻で代用します（※）。その場合、認識処理の遅延を含みます。<br>回答は各表示中に開始された最初の発話で判定します。未回答・認識不能は不正解と区別します。</p>
+      </table></div>
+      <p class="note" id="methodNote">「初出」は暫定・確定テキストに回答語が初めて現れた時刻から、図形表示開始を差し引いた時間です。認識遅延を含みます。「推定」は初回のspeechstartから求めた認識遅延を一律に差し引いた参考値で、発話開始の実測値ではありません。<br>「北→上・東→右・南・なみ・波→下・西→左」は正式な回答として受け付けます。［候補］は認識語のひらがな読みと方向語の読みが近い場合で、暫定集計に含めます。［要確認］は候補が複数あるため自動採点しません。読みの類似は発話の正しさを保証しません。認識原語と候補をCSVに保存します。回答欄の※は「暫定認識で取得されたが最終確定テキストでは消えた語」、判定欄の※は「推定時刻が図形切替前後0.5秒以内で、試行対応に不確実性がある」を示します。いずれも暫定採点に含めています。各図形の実表示時刻と、最初の音声認識テキストから概算した認識遅延を使って割り当てます。最初の回答が「アルバム」等の対象外語として認識されても、後の「下」「右」などを前のカードへ詰めません。最後の図形が消えてから2秒間も音声を受け付けます。音声認識の遅延は一定ではないため、表示回との対応および発話開始推定は確定値ではありません。</p>
       <p id="resultWarning" class="smallStatus" hidden></p>
+      <details class="diagnostics"><summary>認識テキストと時刻のログ</summary><p id="transcriptSummary" class="note"></p><pre id="recognitionLog"></pre></details>
       <div class="actions">
         <button type="button" id="csvButton" class="subtle">結果をCSVで保存</button>
+        <button type="button" id="logButton" class="subtle">認識ログをCSVで保存</button>
         <button type="button" id="retryButton">同じ条件でもう一度</button>
         <button type="button" id="backButton" class="subtle">条件選択に戻る</button>
       </div>
@@ -128,8 +144,10 @@
       blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
     };
     const symbols = ["up", "right", "down", "left", "circle"];
+    const APP_VERSION = "v1.8.5 / 2026-11-02";
     const DISPLAY_MS = 1500;
-    const SETTLE_MS = 2300; // 最終発話の認識結果が届く猶予
+    const GRACE_MS = 2000;
+    const FINAL_WAIT_MS = 1200;
     const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     const screens = Object.fromEntries(["menu", "ready", "play", "processing", "done"].map(k => [k, document.getElementById(k + "Screen")]));
     const symbol = document.getElementById("symbol");
@@ -137,309 +155,677 @@
     const readyInstruction = document.getElementById("readyInstruction");
     const readyBackButton = document.getElementById("readyBackButton");
 
+    // Record interim and final recognition hypotheses, preserving each detected
+    // command's first appearance even if ASR revises its text later.
     let selected = null;
-    let stage = "menu"; // menu / ready / starting / running / settling / done
-    let order = [];
-    let trials = [];
-    let trialIndex = -1;
-    let timerId = null;
-    let rafId = null;
+    let stage = "menu";
+    let order = [], trials = [], resultSlots = new Map(), recognitionLog = [];
+    let snapshots = [], speechStarts = [], finalizedRows = null, timeCalibration = null;
+    // A Web Speech interim hypothesis may disappear or change before finalization.
+    // Permanently store the FIRST occurrence of each newly detected command.
+    let detectedCommands = [], transcriptSnapshots = [];
+    let stoppingForFinish = false, recognitionActive = false, restartCount = 0;
+    let sessionStartIndex=0, archivedFinalWords=[], archivedFinalTranscripts=[], microphoneFatal=false;
     let recognition = null;
-    let speechOnsets = []; // 発話開始時刻：音声認識の返却が遅れても元の試行に対応付ける
-    let resultSlots = new Map(); // resultIndex → 受け取った暫定・確定テキスト
-    let runStartedAt = null;
-    let runWarnings = [];
+    let timerId = null, rafId = null, restartTimer = null;
+    let runStartedAt = null, runWarnings = [];
 
-    function showScreen(name) {
-      for (const [key, element] of Object.entries(screens)) element.hidden = key !== name;
-    }
+    function showScreen(name) { for (const [key, el] of Object.entries(screens)) el.hidden = key !== name; }
+    function warn(text) { if (!runWarnings.includes(text)) runWarnings.push(text); }
     function clearTimers() {
       if (timerId !== null) clearTimeout(timerId);
       if (rafId !== null) cancelAnimationFrame(rafId);
-      timerId = null;
-      rafId = null;
+      if (restartTimer !== null) clearTimeout(restartTimer);
+      timerId = rafId = restartTimer = null;
     }
     function releaseRecognizer() {
-      const current = recognition;
-      recognition = null; // 古いrecognizerの遅延イベントを無視
-      if (current) { try { current.abort(); } catch (_) { /* 既に停止 */ } }
+      const r = recognition;
+      recognition = null;
+      if (r) { try { r.abort(); } catch (_) {} }
     }
     function resetRun() {
-      clearTimers();
-      releaseRecognizer();
-      trials = []; order = []; speechOnsets = [];
-      resultSlots = new Map();
-      trialIndex = -1;
-      runWarnings = [];
-      runStartedAt = null;
+      clearTimers(); releaseRecognizer();
+      order = []; trials = []; resultSlots = new Map(); recognitionLog = [];
+      snapshots = []; speechStarts = []; finalizedRows = null; timeCalibration = null;
+      detectedCommands = []; transcriptSnapshots = [];
+      stoppingForFinish = false; recognitionActive = false; restartCount = 0;
+      sessionStartIndex=0;archivedFinalWords=[];archivedFinalTranscripts=[];microphoneFatal=false;
+      runWarnings = []; runStartedAt = null;
     }
     function shuffledSymbols() {
-      const arr = symbols.slice();
-      for (let i = arr.length - 1; i > 0; i--) {
+      const a = symbols.slice();
+      for (let i = a.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        [a[i], a[j]] = [a[j], a[i]];
       }
-      return arr;
+      return a;
     }
+    function drawSymbol(key) {
+      const condition = conditions[selected], shape = shapes[condition.shapeSet];
+      symbol.style.color = condition.color;
+      symbolPath.setAttribute("d", key === "circle" ? shape.circle : shape.arrow);
+      if (key === "circle") symbolPath.removeAttribute("transform");
+      else symbolPath.setAttribute("transform", `rotate(${directionAngles[key]} 270 269.71)`);
+      symbol.setAttribute("aria-label", names[key]);
+    }
+
+    // Exact vocabulary (including compass-direction alternatives) plus
+    // cautious kana-reading similarity. Never use the displayed answer to
+    // select a candidate; this is essential for an unbiased experiment.
+    const readingGroups = {
+      up: ["うえ", "きた"], right: ["みぎ", "ひがし"],
+      down: ["した", "みなみ", "なみ"], left: ["ひだり", "にし"],
+      circle: ["まる"]
+    };
+    // Explicit kanji spellings / known ASR mistranscriptions with readings.
+    // Unknown kanji cannot be reliably converted to kana using plain JS.
+    const directVocabulary = {
+      "上": ["up","うえ","exact"], "北": ["up","きた","direction-alias"],
+      "右": ["right","みぎ","exact"], "東": ["right","ひがし","direction-alias"],
+      "下": ["down","した","exact"], "南": ["down","みなみ","direction-alias"], "波": ["down","なみ","direction-alias"],
+      "左": ["left","ひだり","exact"], "西": ["left","にし","direction-alias"],
+      "丸": ["circle","まる","exact"], "円": ["circle","まる","exact"],
+      "○": ["circle","まる","exact"], "◯": ["circle","まる","exact"], "〇": ["circle","まる","exact"],
+      "植え": ["up","うえ","exact-reading"], "飢え": ["up","うえ","exact-reading"],
+      "来た": ["up","きた","exact-reading"], "舌": ["down","した","exact-reading"],
+      "稲荷": ["left","いなり","phonetic-candidate"],
+      "三木": ["right","みき","phonetic-candidate"],
+      "幹": ["right","みき","phonetic-candidate"]
+    };
+    // Replace katakana with hiragana, preserving prolonged vowel marks.
+    function toHiragana(value) {
+      return String(value||"").normalize("NFKC").replace(/[ァ-ヶ]/g,
+        c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+    }
+    function editDistance(a,b) {
+      const dp=Array.from({length:b.length+1},(_,i)=>i);
+      for(let i=1;i<=a.length;i++) {
+        let diagonal=dp[0]; dp[0]=i;
+        for(let j=1;j<=b.length;j++) {
+          const old=dp[j];
+          dp[j]=Math.min(dp[j]+1,dp[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
+          diagonal=old;
+        }
+      }
+      return dp[b.length];
+    }
+    const kanaVocabulary = Object.fromEntries(
+      Object.entries(readingGroups).flatMap(([word,readings])=>
+        readings.map(reading=>[reading,word]))
+    );
+    const exactKanaTokens=Object.keys(kanaVocabulary).sort((a,b)=>b.length-a.length);
+    const knownKanjiTokens=Object.keys(directVocabulary).sort((a,b)=>b.length-a.length);
+    const knownKanjiPattern=new RegExp(knownKanjiTokens.map(v=>v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'gu');
+    // At most one kana edit for a short spoken command. A candidate with
+    // several equally good directions stays ambiguous, never auto-corrected.
+    function suggestKana(kana, raw=kana) {
+      if(kana.length<2 || kana.length>5) return null;
+      const distances=[];
+      for(const [word,readings] of Object.entries(readingGroups))
+        for(const reading of readings)
+          distances.push({word,reading,distance:editDistance(kana,reading)});
+      const best=Math.min(...distances.map(d=>d.distance));
+      if(best>1) return null;
+      const winners=distances.filter(d=>d.distance===best);
+      const candidates=[...new Set(winners.map(d=>d.word))];
+      return {word:candidates.length===1?candidates[0]:null,
+        raw, reading:kana, candidateWords:candidates,
+        distance:best, kind:candidates.length===1?"phonetic-candidate":"ambiguous-candidate",
+        corrected:true, ambiguous:candidates.length>1};
+    }
+    const knownKanaMisrecognitions={
+      "いなり":{word:"left",reading:"いなり",distance:2}
+    };
+    function extractKanaTokens(segment) {
+      const kana=toHiragana(segment), found=[];
+      for(let i=0;i<kana.length;){
+        const exact=exactKanaTokens.find(token=>kana.startsWith(token,i));
+        if(exact){
+          const raw=segment.slice(i,i+exact.length),word=kanaVocabulary[exact];
+          found.push({word,raw,reading:exact,candidateWords:[word],distance:0,
+            kind:readingGroups[word][0]===exact?"exact":"direction-alias",corrected:false,ambiguous:false});
+          i+=exact.length;continue;
+        }
+        // A fuzzy match covers ONLY a complete unknown kana span. This avoids
+        // spuriously reading a substring of e.g. "アルバム" as "まる".
+        let end=i+1;
+        while(end<kana.length&&!exactKanaTokens.some(token=>kana.startsWith(token,end)))end++;
+        const raw=segment.slice(i,end),reading=kana.slice(i,end);
+        const known=knownKanaMisrecognitions[reading];
+        const suggestion=known?{word:known.word,raw,reading,
+          candidateWords:[known.word],distance:known.distance,
+          kind:"phonetic-candidate",corrected:true,ambiguous:false}:
+          suggestKana(reading,raw);
+        if(suggestion)found.push(suggestion);
+        i=end;
+      }
+      return found;
+    }
+    function extractCommandDetails(text) {
+      const normalized=String(text||"").normalize("NFKC"),found=[];
+      // Separate known kanji words, kana stretches, and anything else.
+      const pattern=new RegExp(knownKanjiPattern.source+'|[ぁ-ゖァ-ヶー]+','gu');
+      for(const match of normalized.matchAll(pattern)){
+        const token=match[0],entry=directVocabulary[token];
+        if(entry){
+          const [word,reading,kind]=entry;
+          found.push({word,raw:token,reading,candidateWords:[word],
+            distance:kind==='phonetic-candidate'?editDistance(reading,readingGroups[word][0]):0,
+            kind,corrected:kind==='phonetic-candidate',ambiguous:false});
+        } else found.push(...extractKanaTokens(token));
+      }
+      return found;
+    }
+    function detailKey(detail) {
+      return detail.word||('候補:'+detail.candidateWords.join('/'));
+    }
+    function extractCommands(text) {
+      return extractCommandDetails(text).map(d=>d.word).filter(Boolean);
+    }
+    // Web Speech revises/splits/merges and sometimes moves the same phrase to
+    // another result index. Compare the WHOLE current hypothesis against the
+    // words already observed, not per-slot counts (which double count moves).
+    // A word that first appeared in an interim result keeps its first time even
+    // when the engine deletes it in a later revision.
+    function captureSnapshotCommands(at, changedIndex) {
+      const hypothesisDetails = getCurrentDetails();
+      const hypothesis = hypothesisDetails.map(detailKey);
+      transcriptSnapshots.push({at, words:hypothesis.slice()});
+      const history = detectedCommands.slice(sessionStartIndex).map(detailKey);
+      const alreadySeen = new Set(alignWords(history, hypothesis).map(([,j])=>j));
+      const newWords = hypothesis.filter((_,j)=>!alreadySeen.has(j));
+      const newIndices = hypothesis.map((_,j)=>j).filter(j=>!alreadySeen.has(j));
+      for (let k=0;k<newWords.length;k++) {
+        const j = newIndices[k];
+        // Never try to recover a word-specific utterance time when several new
+        // words first appear in the same recognizer event.
+        const fromFinal = Array.from(resultSlots.values()).every(x=>x.isFinal);
+        detectedCommands.push({...hypothesisDetails[j], firstSeenAt:at,
+          rawToken:hypothesisDetails[j].raw, corrected:hypothesisDetails[j].corrected,
+          sourceIndex:changedIndex, source:fromFinal?"確定":"暫定",
+          sequence:detectedCommands.length+1, sameEventWords:newWords.length});
+      }
+    }
+
     function chooseCondition(key) {
       if (!conditions[key]) return;
       resetRun();
-      selected = key;
-      stage = "ready";
+      selected = key; stage = "ready";
       document.getElementById("conditionLabel").textContent = conditions[key].label;
       readyBackButton.hidden = true;
-      readyInstruction.textContent = SpeechRecognitionClass
-        ? "画面をタッチして開始\nマイクの使用を許可してください。"
-        : "このブラウザでは音声認識を利用できません。\n対応ブラウザで開いてください。";
-      if (!SpeechRecognitionClass) readyBackButton.hidden = false;
+      if (!SpeechRecognitionClass) {
+        readyInstruction.textContent = "このブラウザはWeb Speech APIに対応していません。";
+        readyBackButton.hidden = false;
+      } else {
+        readyInstruction.textContent = "画面をタッチして開始\n上・右・下・左・丸（北・東・南・西も可）を声で回答してください。";
+      }
       showScreen("ready");
     }
-    function drawSymbol(name) {
-      const setting = conditions[selected];
-      const shape = shapes[setting.shapeSet];
-      symbol.style.color = setting.color;
-      if (name === "circle") {
-        symbolPath.setAttribute("d", shape.circle);
-        symbolPath.removeAttribute("transform");
-      } else {
-        symbolPath.setAttribute("d", shape.arrow);
-        symbolPath.setAttribute("transform", `rotate(${directionAngles[name]} 270 269.71)`);
-      }
-      symbol.setAttribute("aria-label", names[name]);
-    }
-
-    // 音声認識の表記揺れを統一（上下左右・丸以外を無理に推定しない）。
-    function parseAnswer(transcript) {
-      const s = String(transcript || "").normalize("NFKC")
-        .replace(/[\s\u3000、。,.!！?？「」『』]/g, "")
-        .replace(/(?:です|だよ|だね|だ)$/u, "");
-      const variants = {
-        up: ["上", "うえ", "ウエ"],
-        right: ["右", "みぎ", "ミギ"],
-        down: ["下", "した", "シタ"],
-        left: ["左", "ひだり", "ヒダリ"],
-        circle: ["丸", "まる", "マル", "円", "○", "◯", "〇"]
-      };
-      for (const [key, values] of Object.entries(variants)) {
-        if (values.includes(s)) return key;
-      }
-      return null;
-    }
     function showReadyError(message) {
-      resetRun();
-      stage = "ready";
+      resetRun(); stage = "ready";
       readyInstruction.textContent = message + "\nもう一度タッチして開始してください。";
       readyBackButton.hidden = false;
       showScreen("ready");
     }
-
-    // ユーザー操作によるstart()のあと、認識開始イベントを受けてから提示する。
     function startTest() {
       if (stage !== "ready" || !selected || !SpeechRecognitionClass) return;
+      // Start Web Speech on user gesture; no separate microphone stream.
       resetRun();
       stage = "starting";
-      readyInstruction.textContent = "マイクを準備しています…\n音声認識が始まると図形を表示します。";
-      readyBackButton.hidden = true;
-      const rec = new SpeechRecognitionClass();
-      rec.lang = "ja-JP";
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.maxAlternatives = 1;
-      recognition = rec;
-      rec.onstart = () => {
-        if (recognition !== rec || stage !== "starting") return;
-        beginStimuli();
+      readyInstruction.textContent = "音声認識を起動中…\n開始後に図形を表示します。";
+      const r = new SpeechRecognitionClass();
+      r.lang = "ja-JP";
+      r.continuous = true;
+      r.interimResults = true;
+      r.maxAlternatives = 1;
+      recognition = r;
+      r.onstart = () => {
+        if (recognition !== r) return;
+        recognitionActive = true;
+        recognitionLog.push({at:performance.now(),kind:"recognition-start",index:"",final:"",text:""});
+        if (stage === "starting") beginStimuli();
       };
-      rec.onspeechstart = () => {
-        if (recognition !== rec || stage !== "running" || trialIndex < 0) return;
-        const at = performance.now();
-        const current = trials[trialIndex];
-        if (!current || at - current.shownAt >= DISPLAY_MS + 80) return;
-        speechOnsets.push({ trialIndex, at, claimed: false });
-      };
-      rec.onresult = event => {
-        if (recognition !== rec || (stage !== "running" && stage !== "settling")) return;
-        const receivedAt = performance.now();
-        const from = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
-        for (let k = from; k < event.results.length; k++) {
-          const entry = event.results[k];
-          if (!entry || !entry[0]) continue;
-          const raw = String(entry[0].transcript || "").trim();
-          if (!raw) continue;
-          let slot = resultSlots.get(k);
-          if (!slot) {
-            // 音声認識の結果通知は発話開始より後になるので、先行するspeechstartと結びつける。
-            const onset = speechOnsets.find(o => !o.claimed && receivedAt >= o.at && receivedAt - o.at < 5000);
-            if (onset) onset.claimed = true;
-            const assignedTrial = onset ? onset.trialIndex : (stage === "running" ? trialIndex : trials.length - 1);
-            if (assignedTrial < 0) continue;
-            slot = {
-              trialIndex: assignedTrial,
-              at: onset ? onset.at : receivedAt,
-              timeSource: onset ? "speechstart" : "result",
-              raw: "", answer: null, isFinal: false
-            };
-            resultSlots.set(k, slot);
-          }
-          slot.raw = raw;
-          slot.answer = parseAnswer(raw);
-          slot.isFinal = !!entry.isFinal;
+      r.onspeechstart = () => {
+        if (recognition === r) {
+          const at=performance.now(); speechStarts.push(at);
+          recognitionLog.push({at,kind:"speechstart",index:"",final:"",text:""});
         }
       };
-      rec.onerror = event => {
-        if (recognition !== rec) return;
-        const label = {
-          "not-allowed": "マイクの使用が許可されませんでした。",
-          "service-not-allowed": "音声認識サービスの利用が許可されませんでした。",
-          "audio-capture": "マイクを使用できません。",
-          "network": "音声認識サービスに接続できません。",
-          "language-not-supported": "日本語の音声認識に対応していません。",
-          "no-speech": "音声認識が音声を検出できず停止しました。"
-        }[event.error] || `音声認識エラー（${event.error || "unknown"}）が発生しました。`;
-        if (stage === "starting" || stage === "running") showReadyError(label);
-        else if (stage === "settling") runWarnings.push(label);
-      };
-      rec.onend = () => {
-        if (recognition !== rec) return;
-        // 実験途中に認識が止まった場合、不正な成績として記録せず再試行させる。
-        if (stage === "starting" || stage === "running") {
-          showReadyError("音声認識が途中で停止したため、測定を中断しました。");
+      r.onresult = ev => {
+        if (recognition !== r || !["running","grace","stopping"].includes(stage)) return;
+        const at=performance.now();
+        const from=Number.isInteger(ev.resultIndex)?ev.resultIndex:0;
+        for(let i=from;i<ev.results.length;i++) {
+          const item=ev.results[i];
+          if(!item?.[0])continue;
+          const raw=String(item[0].transcript||"").trim();
+          resultSlots.set(i,{text:raw,isFinal:!!item.isFinal,updatedAt:at});
+          recognitionLog.push({at,kind:"result",index:i,final:item.isFinal?"確定":"暫定",text:raw});
         }
+        for(const i of Array.from(resultSlots.keys()))
+          if(i>=ev.results.length)resultSlots.delete(i);
+        snapshots.push({at,words:getCurrentWords()});
+        captureSnapshotCommands(at,from);
       };
-      try {
-        // ユーザーのタップイベント内で開始（モバイル端末のマイク許可に必要）。
-        rec.start();
-      } catch (e) {
-        showReadyError(`音声認識を開始できませんでした（${e.name || "error"}）。`);
-      }
+      r.onerror = ev => {
+        if(recognition!==r)return;
+        const code=ev.error||"unknown",at=performance.now();
+        recognitionLog.push({at,kind:"error",index:"",final:"",text:code});
+        if(code==="not-allowed"||code==="service-not-allowed"||code==="audio-capture") {
+          microphoneFatal=true;
+          if(stage==="starting")showReadyError(`マイクの利用に失敗しました（${code}）。`);
+          else warn(`音声認識が停止しました（${code}）。`);
+        } else warn(`音声認識イベント：${code}`);
+      };
+      r.onend = () => {
+        if(recognition!==r)return;
+        recognitionActive=false;
+        recognitionLog.push({at:performance.now(),kind:"recognition-end",index:"",final:"",text:""});
+        if(stage==="stopping"){
+          if(stoppingForFinish)finishTest();
+          return;
+        }
+        if(stage==="starting"){
+          showReadyError("音声認識を開始できませんでした。再試行してください。");return;
+        }
+        if(stage!=="running"&&stage!=="grace")return;
+        if(microphoneFatal)return;
+        // Some browsers end a continuous session on silence. Resume while the
+        // trial/grace window is still open; never discard the collected words.
+        restartCount++;
+        if(restartCount>8){warn("音声認識が何度も終了しました。認識の欠落がある可能性があります。");return;}
+        restartTimer=setTimeout(()=>{
+          restartTimer=null;
+          if(recognition!==r || !(stage==="running"||stage==="grace"))return;
+          const previous=getFinalWords();
+          archivedFinalWords.push(...previous.currentTokens);
+          if(previous.currentTranscript)archivedFinalTranscripts.push(previous.currentTranscript);
+          sessionStartIndex=detectedCommands.length;
+          resultSlots.clear();
+          try{r.start();}catch(e){warn(`音声認識の再開に失敗：${e.name||"error"}`);}
+        },180);
+      };
+      try { r.start(); } catch (e) { showReadyError(`音声認識を開始できません（${e.name || "error"}）。`); }
     }
-
+    // Keep the literal spelling of each recognized word so that ASR aliases
+    // can be audited in the result table and exported CSV.
+    function getCurrentDetails() {
+      const entries=Array.from(resultSlots.entries()).sort((a,b)=>a[0]-b[0]);
+      let all=[],prev=null;
+      for(const [,entry] of entries){
+        const next=extractCommandDetails(entry.text);
+        const nextWords=next.map(detailKey);
+        let overlap=0;
+        if(prev && next.length && all.length &&
+           Math.max(prev.tokens.length,next.length)>1 &&
+           Math.abs(entry.updatedAt-prev.entry.updatedAt)<=1300){
+          const max=Math.min(all.length,next.length);
+          for(let n=1;n<=max;n++){
+            if(all.slice(-n).every((d,j)=>detailKey(d)===nextWords[j]))overlap=n;
+          }
+        }
+        all.push(...next.slice(overlap));
+        if(next.length)prev={tokens:next,entry};
+      }
+      return all;
+    }
+    function getCurrentWords() { return getCurrentDetails().map(detailKey); }
     function beginStimuli() {
-      order = shuffledSymbols();
-      trials = [];
-      trialIndex = -1;
-      runStartedAt = new Date().toISOString();
-      stage = "running";
-      showScreen("play");
+      order = shuffledSymbols(); trials = []; runStartedAt = new Date().toISOString();
+      recognitionLog.push({at:performance.now(),kind:"app-version",index:"",final:"",text:APP_VERSION});
+      stage = "running"; showScreen("play");
       rafId = requestAnimationFrame(() => showTrial(0));
     }
     function showTrial(i) {
       rafId = null;
       if (stage !== "running") return;
-      trialIndex = i;
-      const expected = order[i];
-      drawSymbol(expected);
-      // DOM更新後の単調増加時計による刺激提示基準時刻（描画実時間との誤差は残る）。
-      trials.push({ expected, shownAt: performance.now() });
+      const key = order[i]; drawSymbol(key);
+      const startPerf = performance.now();
+      if (i && trials[i-1]) trials[i-1].actualMs = startPerf-trials[i-1].shownPerf;
+      trials.push({expected:key,shownPerf:startPerf,actualMs:null});
+      recognitionLog.push({at:startPerf,kind:"stimulus",index:i+1,final:"",text:names[key]});
       timerId = setTimeout(() => {
         timerId = null;
         if (stage !== "running") return;
-        if (i + 1 < order.length) {
-          rafId = requestAnimationFrame(() => showTrial(i + 1));
-        } else {
-          endStimuli();
-        }
+        if (i+1 < order.length) rafId = requestAnimationFrame(() => showTrial(i+1));
+        else endStimuli();
       }, DISPLAY_MS);
     }
     function endStimuli() {
-      if (stage !== "running") return;
-      stage = "settling";
+      if(stage!=="running")return;
+      stage="grace";
+      if(trials.length)trials[trials.length-1].actualMs=performance.now()-trials[trials.length-1].shownPerf;
+      // The last figure has finished. Do NOT stop Web Speech yet.
+      // Give the participant two more seconds to answer it.
       showScreen("processing");
-      // stop()で確定結果を要求し、遅れて届く結果を短時間だけ待つ。
-      if (recognition) { try { recognition.stop(); } catch (_) { /* 終了済み */ } }
-      timerId = setTimeout(finishTest, SETTLE_MS);
+      document.querySelector("#processingScreen h1").textContent="最後の回答を受付中";
+      document.querySelector("#processingScreen .hint").textContent="図形表示終了後も2秒間、音声認識を継続します。";
+      recognitionLog.push({at:performance.now(),kind:"grace-start",index:"",final:"",text:""});
+      timerId=setTimeout(stopAndFinalize,GRACE_MS);
+    }
+    function stopAndFinalize() {
+      if(stage!=="grace")return;
+      stage="stopping";stoppingForFinish=true;
+      document.querySelector("#processingScreen h1").textContent="集計中…";
+      document.querySelector("#processingScreen .hint").textContent="認識エンジンの最終結果を確認しています。";
+      recognitionLog.push({at:performance.now(),kind:"stop-request",index:"",final:"",text:""});
+      // stop() requests final decoding; abort() would lose late recognized text.
+      if(recognitionActive){try{recognition?.stop();}catch(e){warn(`音声認識の停止時：${e.name||"error"}`);}}
+      // Some implementations do not dispatch an onend after stop().
+      timerId=setTimeout(finishTest,FINAL_WAIT_MS);
+    }
+    function getFinalWords() {
+      const entries = Array.from(resultSlots.entries()).sort((a,b)=>a[0]-b[0]);
+      const currentTranscript=entries.filter(([,v])=>v.isFinal).map(([,v])=>v.text).join(" / ");
+      const currentTokens=entries.filter(([,v])=>v.isFinal).flatMap(([,v])=>extractCommands(v.text));
+      return {
+        currentTranscript,currentTokens,
+        transcript:[...archivedFinalTranscripts,currentTranscript].filter(Boolean).join(" / "),
+        tokens:[...archivedFinalWords,...currentTokens],
+        pending:entries.filter(([,v])=>!v.isFinal).map(([,v])=>v.text).join(" / ")
+      };
+    }
+    // Longest common subsequence: track a word even when Web Speech rewrites
+    // interim text, splits a result, or merges several words into one result.
+    // Returns [snapshotIndex, finalIndex] pairs in token order.
+    function alignWords(snapshot, finalWords) {
+      const n=snapshot.length, m=finalWords.length;
+      const dp=Array.from({length:n+1},()=>Array(m+1).fill(0));
+      for (let i=n-1;i>=0;i--) for (let j=m-1;j>=0;j--)
+        dp[i][j] = snapshot[i]===finalWords[j]
+          ? 1+dp[i+1][j+1] : Math.max(dp[i+1][j],dp[i][j+1]);
+      const pairs=[]; let i=0,j=0;
+      while (i<n && j<m) {
+        if (snapshot[i]===finalWords[j] && dp[i][j]===dp[i+1][j+1]+1) {
+          pairs.push([i,j]);i++;j++;
+        } else if (dp[i+1][j]>dp[i][j+1]) i++;
+        else j++;
+      }
+      return pairs;
+    }
+    function getTimedTokens(finalWords) {
+      const times=finalWords.map(()=>null);
+      const timingMethod=finalWords.map(()=>"暫定/確定の初出");
+      for (const snap of snapshots) for (const [,j] of alignWords(snap.words,finalWords)) {
+        if (times[j]===null || snap.at<times[j]) times[j]=snap.at;
+      }
+      // If an interim segment was rewritten so heavily that no snapshot could
+      // be aligned, use the final-result receipt time rather than discarding
+      // the recognized word. Such timestamps are explicitly marked coarse.
+      const finalEntries=Array.from(resultSlots.entries())
+        .sort((a,b)=>a[0]-b[0]).filter(([,entry])=>entry.isFinal);
+      const finalReceipt=[];
+      for(const [,entry] of finalEntries) for(const word of extractCommands(entry.text))
+        finalReceipt.push({word,at:entry.updatedAt});
+      for(let i=0;i<finalWords.length;i++) if(times[i]===null && finalReceipt[i]) {
+        times[i]=finalReceipt[i].at;
+        timingMethod[i]="確定受信時刻で代用";
+      }
+      return finalWords.map((word,i)=>({word,firstSeenAt:times[i],ordinal:i+1,
+        timingMethod:timingMethod[i]}));
+    }
+    function stimulusEnd(i) {
+      return i+1<trials.length ? trials[i+1].shownPerf
+        : trials[i].shownPerf + (trials[i].actualMs ?? DISPLAY_MS);
+    }
+    // Align each recognized response to the ACTUAL display interval, not to
+    // the row number of the first recognized command. A missing first utterance
+    // must never shift the remaining four answers one row upward.
+    // Expected direction labels are NEVER used in this alignment.
+    function assignByTime(words,lagMs){
+      const n=words.length,m=trials.length,N=Number.POSITIVE_INFINITY;
+      // NEVER match by array index just because token and stimulus counts are
+      // equal. A false interim token, repeated term, or an omitted utterance
+      // can still shift every answer by one.
+
+      const dp=Array.from({length:n+1},()=>Array(m+1).fill(N));
+      const prev=Array.from({length:n+1},()=>Array(m+1).fill(null));
+      dp[0][0]=0;
+      const update=(i,j,cost,op,pi,pj)=>{
+        if(cost<dp[i][j]-1e-8){dp[i][j]=cost;prev[i][j]={op,pi,pj};}
+      };
+      for(let i=0;i<=n;i++)for(let j=0;j<=m;j++){
+        if(!Number.isFinite(dp[i][j]))continue;
+        if(j<m)update(i,j+1,dp[i][j]+1.12,"missing",i,j);
+        if(i<n)update(i+1,j,dp[i][j]+2.70,"unplaced",i,j);
+        if(i<n&&j<m){
+          const onset=words[i].firstSeenAt-lagMs;
+          const start=trials[j].shownPerf,end=stimulusEnd(j);
+          let temporal;
+          if(onset<start) temporal=0.95+(start-onset)/500;
+          else if(onset>end) temporal=0.95+(onset-end)/600;
+          else temporal=0.02;
+          update(i+1,j+1,dp[i][j]+temporal,"match",i,j);
+        }
+      }
+      const assignments=Array(m).fill(null),dropped=[];
+      let i=n,j=m;
+      while(i>0||j>0){
+        const step=prev[i][j];if(!step)break;
+        if(step.op==="match")assignments[j-1]=i-1;
+        if(step.op==="unplaced")dropped.push(i-1);
+        i=step.pi;j=step.pj;
+      }
+      return {assignments,dropped,cost:dp[n][m]};
+    }
+    function deriveCalibration(words) {
+      if(!words.length) return {lagMs:0,source:"認識語なし",reliable:false};
+      // For a first word misheard as a NON-command (e.g. "丸" -> "アルバム"),
+      // calibrating against the first later command gives a wildly inflated
+      // delay and incorrectly assigns that command to the FIRST card.
+      // Use the FIRST nonempty interim/final TEXT of any kind instead.
+      const firstSpeech=speechStarts[0];
+      if(firstSpeech!==undefined) {
+        const firstRaw=recognitionLog.find(e=>e.kind==="result"&&
+          String(e.text||"").trim()&&e.at>=firstSpeech&&e.at-firstSpeech<=1800);
+        if(firstRaw){
+          const lag=firstRaw.at-firstSpeech;
+          if(lag>=50&&lag<=1500) return {lagMs:lag,
+            source:"最初のspeechstartから最初の認識テキスト（方向語以外も含む）まで",reliable:false};
+        }
+      }
+      // Without an onset anchor, do not pretend that the ASR latency was
+      // measured. This fallback is for matching only, never a true RT.
+      return {lagMs:700,source:"認識遅延の仮定値0.700秒（未校正）",reliable:false};
+    }
+    // Recognized non-command text is also a response, not automatically a
+    // "missing answer". Conservative case: a prefix of the FINAL transcript
+    // that occurred before the first recognized direction in the interim log.
+    // Never infer an unknown answer only from a transient one-letter interim.
+    function firstUnknownAnswer(commands) {
+      if (!commands.length || commands.length>=trials.length) return null;
+      const transcript=getFinalWords().transcript.normalize("NFKC");
+      const firstKnown=extractCommandDetails(transcript)[0];
+      const pos=firstKnown?transcript.indexOf(firstKnown.raw):-1;
+      if(pos<=0) return null;
+      const prefix=transcript.slice(0,pos).replace(/[\s。、，,.!?！？/]+/g,"").trim();
+      if(prefix.length<2) return null;
+      const firstCommandAt=commands[0].firstSeenAt;
+      const rawBefore=recognitionLog.filter(e=>e.kind==="result"&&
+        e.at<firstCommandAt-100&&String(e.text||"").trim()&&
+        !extractCommands(e.text).length);
+      const first=rawBefore.find(e=>{
+        const raw=String(e.text).normalize("NFKC").replace(/\s+/g,"");
+        return raw.length>=2&&(prefix.startsWith(raw)||raw.startsWith(prefix));
+      });
+      if(!first) return null;
+      return {word:null,rawText:prefix,firstSeenAt:first.at,source:"確定テキストの対象外語",sourceIndex:first.index,
+        timingMethod:"暫定の初出",retainedInFinal:true,sameEventWords:1};
     }
     function getResults() {
-      const slots = [...resultSlots.values()];
-      return trials.map((trial, i) => {
-        const related = slots.filter(s => s.trialIndex === i).sort((a, b) => a.at - b.at)[0];
-        const pendingSpeech = speechOnsets.find(o => o.trialIndex === i);
-        const raw = related ? related.raw : "";
-        const answer = related ? related.answer : null;
-        const at = related ? related.at : (pendingSpeech ? pendingSpeech.at : null);
-        const timeSource = related ? related.timeSource : (pendingSpeech ? "speechstart" : "none");
-        const reactionMs = at === null ? null : Math.max(0, Math.round(at - trial.shownAt));
-        let status = "unanswered";
-        if (related) status = answer === null ? "unrecognized" : (answer === trial.expected ? "correct" : "incorrect");
-        else if (pendingSpeech) status = "unrecognized";
-        return { number: i + 1, expected: trial.expected, answer, raw, status, reactionMs, timeSource };
+      if (finalizedRows) return finalizedRows;
+      const {tokens:finalTokens}=getFinalWords();
+      // IMPORTANT: final transcripts alone are NOT sufficient. Interim words
+      // that the ASR later removes must still be eligible for timing/scoring.
+      const validated=new Set(alignWords(detectedCommands.map(detailKey),finalTokens).map(([i])=>i));
+      const timed=detectedCommands.map((c,i)=>({
+        ...c,ordinal:i+1,timingMethod:c.source+"の初出",
+        retainedInFinal:validated.has(i)
+      }));
+      const unknown=firstUnknownAnswer(timed);
+      if(unknown) timed.unshift({...unknown,ordinal:0});
+      timeCalibration=deriveCalibration(timed);
+      const aligned=assignByTime(timed,timeCalibration.lagMs);
+      const rows=trials.map((t,i)=>{
+        const idx=aligned.assignments[i];
+        const match=idx===null ? null : timed[idx];
+        const firstSeenAt=match?.firstSeenAt??null;
+        const rawReactionMs=firstSeenAt===null ? null : Math.round(firstSeenAt-t.shownPerf);
+        const rawOnsetMs=firstSeenAt===null ? null : Math.round(firstSeenAt-timeCalibration.lagMs-t.shownPerf);
+        // Negative times indicate an impossible/ambiguous alignment, not a
+        // physiological response. Keep the raw values in the log/CSV only.
+        const reactionMs=rawReactionMs!==null && rawReactionMs>=0?rawReactionMs:null;
+        const onsetMs=rawOnsetMs!==null && rawOnsetMs>=0?rawOnsetMs:null;
+        const status=!match?"missing":match.ambiguous?"uncertain":match.word===t.expected?"correct":"incorrect";
+        // Later ASR text often arrives with variable delay. A token estimated
+        // close to a 1.5-second stimulus boundary might belong to either trial.
+        const estimatedAt=firstSeenAt===null ? null : firstSeenAt-timeCalibration.lagMs;
+        const boundaryDistance=estimatedAt===null ? Infinity : Math.min(...trials.slice(1).map(z=>Math.abs(estimatedAt-z.shownPerf)));
+        const anchoredFirstWord=idx===0 && speechStarts.length &&
+          Math.abs(speechStarts[0]-estimatedAt)<80;
+        const ambiguousMapping=Boolean(match && !anchoredFirstWord &&
+          (boundaryDistance<500 || estimatedAt< t.shownPerf || estimatedAt>stimulusEnd(i)));
+        return {number:i+1,expected:t.expected,answer:match?.word??null,
+          rawAnswer:match?.rawText??null, status,reactionMs,estimatedOnsetMs:onsetMs,rawReactionMs,rawOnsetMs,firstSeenAt,
+          ambiguousMapping,boundaryDistanceMs:Math.round(boundaryDistance),
+          wordIndex:match?.ordinal??null,retainedInFinal:match?.retainedInFinal??false,
+          rawRecognizedToken:match?.rawToken??null,asrCorrected:!!match?.corrected,
+          recognitionKind:match?.kind??null,recognitionReading:match?.reading??null,
+          recognitionDistance:match?.distance??null,recognitionCandidates:match?.candidateWords??[],
+          asrAmbiguous:!!match?.ambiguous,
+          mapping:match?(match.rawText?"対象外の認識文字列（最終確定に残存）："+match.rawText:
+            "時刻対応（"+match.timingMethod+"、"+
+            (match.retainedInFinal?"確定結果にも残存":"暫定のみ・確定時に消失")+"）"):"認識なし",
+          actualMs:t.actualMs};
       });
+      finalizedRows=rows;
+      if (aligned.dropped.length) warn(`${aligned.dropped.length}件の認識語を表示回へ割り当てられませんでした。`);
+      if(timed.length===trials.length && aligned.assignments.some((w,i)=>w!==i))
+        warn("認識語は5件ですが、認識時刻の不整合により単純な発話順での採点は採用していません。");
+      if (timed.some(t=>!t.retainedInFinal))
+        warn("暫定認識から取得した回答の一部が、最終確定テキストから消えています。判定は暫定語を採用しており、誤認識の可能性があります。");
+      if(timed.some(t=>t.corrected))
+        warn("ひらがなの読みが近い認識語は補正候補として暫定採点しています。複数の候補が同点なら自動採点せず『要確認』にします。正解の図形名を使って候補を選ぶことはありません。");
+      if (rows.some(r=>r.ambiguousMapping))
+        warn("※ 時刻対応注意：推定時刻が図形切替付近または表示区間外の回答があります。遅れた発話を拾うため順序も利用していますが、認識遅延の変動により対応は暫定です。");
+      return rows;
     }
     function finishTest() {
-      if (stage !== "settling") return;
-      clearTimers();
-      const results = getResults();
-      stage = "done";
-      releaseRecognizer();
-      const correct = results.filter(r => r.status === "correct").length;
-      const incorrect = results.filter(r => r.status === "incorrect").length;
-      const unanswered = results.filter(r => r.status === "unanswered").length;
-      const unknown = results.filter(r => r.status === "unrecognized").length;
-      document.getElementById("score").textContent = `正解 ${correct} / ${results.length} 問`;
-      document.getElementById("counts").textContent = `不正解 ${incorrect}　未回答 ${unanswered}　認識不能 ${unknown}`;
-      const tbody = document.getElementById("resultBody");
-      tbody.replaceChildren();
-      for (const r of results) {
-        const tr = document.createElement("tr");
-        const meanings = { correct: "正解", incorrect: "不正解", unanswered: "未回答", unrecognized: "認識不能" };
-        const c = (text, css = "") => {
-          const td = document.createElement("td");
-          td.textContent = text;
-          if (css) td.className = css;
-          tr.appendChild(td);
-        };
-        c(String(r.number));
-        c(names[r.expected]);
-        c(r.answer ? names[r.answer] : (r.raw || "—"), "raw");
-        c(meanings[r.status], r.status === "correct" ? "ok" : (r.status === "incorrect" ? "ng" : "na"));
-        c(r.reactionMs === null ? "—" : (r.reactionMs / 1000).toFixed(3) + "秒" + (r.timeSource === "result" ? " ※" : ""));
-        tbody.appendChild(tr);
+      if (stage !== "stopping") return;
+      clearTimers(); stage = "done";
+      const {tokens, transcript, pending} = getFinalWords();
+      const rows = getResults();
+      if (rows.some(r=>r.status==="uncertain"))
+        warn("複数の方向語とひらがなの距離が同じ認識語があります。方向を決め打ちせず『要確認』として集計しました。");
+      if (rows.some(r=>r.status==="missing"))
+        warn(`回答として対応付けられたのは${rows.length-rows.filter(r=>r.status==="missing").length}件です。欠けた回だけ「認識なし」とします。`);
+      if(rows.some(r=>r.rawAnswer))
+        warn("確定テキスト中の対象外語も誤認識として残しました。図形との対応は時刻推定によるものです。");
+      if (pending) warn("一部の認識結果は未確定ですが、暫定テキストで検出した語も採点候補に含めています。");
+      if (timeCalibration?.source.includes("未校正"))
+        warn("speechstartによる初回補正ができなかったため、表示との対応は認識時刻分布からの推定です。境界付近は誤対応の可能性があります。");
+      const correct=rows.filter(r=>r.status==="correct").length;
+      const wrong=rows.filter(r=>r.status==="incorrect").length;
+      const missing=rows.filter(r=>r.status==="missing").length;
+      const uncertain=rows.filter(r=>r.status==="uncertain").length;
+      const candidateCount=rows.filter(r=>r.asrCorrected).length;
+      if (rows.some(r=>r.reactionMs!==null&&r.reactionMs>DISPLAY_MS))
+        warn("表示終了後にテキストが初めて現れた回答があります。反応時間（初出）には音声認識の遅延を含みます。");
+      if (rows.some(r=>r.rawOnsetMs!==null && r.rawOnsetMs<0))
+        warn("発話推定時間が負になる回は表示せず、CSVに生値を残しました。認識遅延の補正値は全問に適用できるとは限りません。");
+      if(rows.some(r=>r.rawReactionMs!==null && r.rawReactionMs<0))
+        warn("テキスト初出が対応する図形より前にある回は、時刻対応が不整合のため反応時間を欠測としました。CSVに生値を保存します。");
+      if (detectedCommands.some(c=>c.sameEventWords>1))
+        warn("複数の回答語が同一イベントで初出しています。個別の発話時刻は復元できません。");
+      if (restartCount>0) warn(`認識エンジンが${restartCount}回再起動しました。イベント間の空白では未検出の可能性があります。`);
+      document.getElementById("score").textContent=`正解 ${correct} / ${rows.length} 問（暫定・補正候補を含む）`;
+      document.getElementById("counts").textContent=`不正解 ${wrong}　認識なし ${missing}　要確認 ${uncertain}　補正候補 ${candidateCount}　時刻対応注意 ${rows.filter(r=>r.ambiguousMapping).length}`;
+      const body=document.getElementById("resultBody");body.replaceChildren();
+      const labels={correct:"正解",incorrect:"不正解",missing:"認識なし",uncertain:"要確認"};
+      for (const r of rows) {
+        const tr=document.createElement("tr");
+        const cell=(value,css)=>{const td=document.createElement("td");td.textContent=value;
+          if(css)td.className=css;tr.appendChild(td);};
+        cell(r.number);cell(names[r.expected]);
+        const recognizedLabel=r.rawAnswer?`その他：${r.rawAnswer}`:
+          r.asrAmbiguous?`候補：${r.recognitionCandidates.map(w=>names[w]).join("／")}［${r.rawRecognizedToken}］`:
+          r.answer?names[r.answer]+(r.recognitionKind==="direction-alias"?`［${r.rawRecognizedToken}］`:
+            (r.asrCorrected?`［候補：${r.rawRecognizedToken}］`:""))+(r.retainedInFinal?"":"※"):"—";
+        cell(recognizedLabel,"raw");
+        cell(labels[r.status]+(r.asrCorrected&&!r.asrAmbiguous?"（候補）":"")+(r.ambiguousMapping?"※":""),r.status==="correct"?"ok":r.status==="incorrect"?"ng":"warn");
+        cell(r.reactionMs===null?"—":(r.reactionMs/1000).toFixed(3)+"秒");
+        cell(r.estimatedOnsetMs===null?"—":(r.estimatedOnsetMs/1000).toFixed(3)+"秒");
+        body.appendChild(tr);
       }
-      const warning = document.getElementById("resultWarning");
-      warning.hidden = runWarnings.length === 0;
-      warning.textContent = runWarnings.join(" ");
-      showScreen("done");
+      const base=trials[0]?.shownPerf??performance.now();
+      const fmt=t=>t===null?"—":((t-base)/1000).toFixed(3)+"秒";
+      document.getElementById("transcriptSummary").textContent=
+        `確定テキスト：${transcript||"（なし）"}\n`+
+        `確定テキストだけから抽出：${tokens.map(w=>names[w]).join(" → ")||"（なし）"}\n`+
+        `暫定＋確定の初出：${rows.filter(r=>r.firstSeenAt!==null).map(r=>
+          (r.rawAnswer||r.rawRecognizedToken||names[r.answer]||"不明")+"="+fmt(r.firstSeenAt)).join(" / ")||"（なし）"}\n`+
+        `認識遅延補正：${(timeCalibration.lagMs/1000).toFixed(3)}秒（${timeCalibration.source}）\n`+
+        `各図形の表示開始：${trials.map((t,i)=>`${i+1}回 ${names[t.expected]}=${fmt(t.shownPerf)}`).join(" / ")}\n`+
+        `時刻対応：${rows.map(r=>`${r.number}回 ${r.rawAnswer|| (r.answer?names[r.answer]:"認識なし")} 初出${fmt(r.firstSeenAt)}`).join(" / ")}`;
+      document.getElementById("recognitionLog").textContent=
+        recognitionLog.map(e=>`${((e.at-base)/1000).toFixed(3)}秒  ${e.kind} ${e.index} ${e.final} ${e.text}`).join("\n")||"記録なし";
+      const note=document.getElementById("resultWarning");
+      note.hidden=!runWarnings.length;note.textContent=runWarnings.join("\n");
+      showScreen("done");releaseRecognizer();
     }
-    function downloadCsv() {
+    function csvFile(rows,name){
+      const data="\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(",")).join("\r\n");
+      const url=URL.createObjectURL(new Blob([data],{type:"text/csv;charset=utf-8"}));
+      const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+    }
+    function downloadCsv(){
       if (stage !== "done") return;
-      const rows = [["日時(ISO8601)", "条件", "試行", "表示", "認識された回答", "認識原文", "判定", "反応時間_ms", "計測基準"]];
-      const meanings = { correct: "正解", incorrect: "不正解", unanswered: "未回答", unrecognized: "認識不能" };
-      for (const r of getResults()) {
-        rows.push([runStartedAt, conditions[selected].label, r.number, names[r.expected],
-          r.answer ? names[r.answer] : "", r.raw, meanings[r.status],
-          r.reactionMs === null ? "" : r.reactionMs,
-          r.timeSource === "speechstart" ? "音声検出イベント" : (r.timeSource === "result" ? "認識結果受信時刻(代用)" : "未計測")]);
-      }
-      const csv = "\uFEFF" + rows.map(row => row.map(v => '"' + String(v ?? "").replaceAll('"', '""') + '"').join(",")).join("\r\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-      link.download = `peripheral_vision_${selected}_${stamp}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+      const base=trials[0]?.shownPerf??0;
+      const rows=[["アプリ版","日時(ISO8601)","条件","回","表示","回答(認識)","判定","表示開始_ms(第1図形基準)",
+        "反応時間_ms(テキスト初出)","発話開始推定時間_ms(概算)","初出差_生値_ms(負値は無効)","発話推定差_生値_ms(負値は無効)",
+        "回答語初出時刻_ms(第1表示基準)","認識遅延補正_ms", "補正根拠",
+        "対応根拠","時刻対応注意","最終確定にも残ったか","実表示間隔_ms","認識原語","音声認識の語彙補正",
+        "認識種別","ひらがな読み","編集距離","補正候補の方向","候補が複数で曖昧"]];
+      const status={correct:"正解",incorrect:"不正解",missing:"認識なし",uncertain:"要確認"};
+      for (const r of getResults()) rows.push([
+        APP_VERSION,runStartedAt,conditions[selected].label,r.number,names[r.expected],r.rawAnswer?`その他：${r.rawAnswer}`:(r.answer?names[r.answer]:""),
+        status[r.status],Math.round(trials[r.number-1].shownPerf-base),r.reactionMs??"",r.estimatedOnsetMs??"",r.rawReactionMs??"",r.rawOnsetMs??"",
+        r.firstSeenAt===null?"":Math.round(r.firstSeenAt-base),
+        Math.round(timeCalibration?.lagMs??0),timeCalibration?.source??"",
+        r.mapping,r.ambiguousMapping?"YES":"NO",r.answer?(r.retainedInFinal?"YES":"NO"):"",r.actualMs?.toFixed(1)??"",
+        r.rawRecognizedToken??"",r.asrCorrected?"YES":"NO",
+        r.recognitionKind??"",r.recognitionReading??"",r.recognitionDistance??"",
+        r.recognitionCandidates.map(c=>names[c]).join("/"),r.asrAmbiguous?"YES":"NO"
+      ]);
+      csvFile(rows,`peripheral_vision_result_${selected}_${Date.now()}.csv`);
     }
-
-    document.getElementById("conditionButtons").addEventListener("click", e => {
-      const b = e.target.closest("button[data-condition]");
-      if (b) chooseCondition(b.dataset.condition);
+    function downloadLog(){
+      if (stage !== "done") return;
+      const rows = [["アプリ版","日時(ISO8601)","条件","分類","認識結果番号","確定/暫定","ログ時刻_ms（第1図形基準）","認識文字列"]];
+      const start = trials[0]?.shownPerf ?? 0;
+      for (const e of recognitionLog) rows.push([
+        APP_VERSION,runStartedAt, conditions[selected].label, e.kind, e.index, e.final,
+        Math.round(e.at - start), e.text
+      ]);
+      for (const e of detectedCommands) rows.push([
+        APP_VERSION,runStartedAt,conditions[selected].label,"回答語初出",e.sourceIndex,e.source,
+        Math.round(e.firstSeenAt-start),
+        e.corrected?`${e.rawToken} -> ${e.candidateWords.map(w=>names[w]).join("/")} (ひらがな類似候補、距離${e.distance})`:(e.rawToken||names[e.word])
+      ]);
+      csvFile(rows,`peripheral_vision_log_${selected}_${Date.now()}.csv`);
+    }
+    document.getElementById("conditionButtons").addEventListener("click",ev=>{
+      const b=ev.target.closest("button[data-condition]");if(b)chooseCondition(b.dataset.condition);
     });
-    screens.ready.addEventListener("click", startTest);
-    readyBackButton.addEventListener("click", e => {
-      e.stopPropagation();
-      resetRun(); selected = null; stage = "menu"; showScreen("menu");
-    });
-    document.getElementById("csvButton").addEventListener("click", downloadCsv);
-    document.getElementById("retryButton").addEventListener("click", () => chooseCondition(selected));
-    document.getElementById("backButton").addEventListener("click", () => {
-      resetRun(); selected = null; stage = "menu"; showScreen("menu");
-    });
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden && (stage === "starting" || stage === "running")) {
-        showReadyError("ブラウザが非表示になったため、測定を中断しました。");
-      }
+    screens.ready.addEventListener("click",startTest);
+    readyBackButton.addEventListener("click",ev=>{ev.stopPropagation();resetRun();selected=null;stage="menu";showScreen("menu");});
+    document.getElementById("retryButton").addEventListener("click",()=>chooseCondition(selected));
+    document.getElementById("backButton").addEventListener("click",()=>{resetRun();selected=null;stage="menu";showScreen("menu");});
+    document.getElementById("csvButton").addEventListener("click",downloadCsv);
+    document.getElementById("logButton").addEventListener("click",downloadLog);
+    document.addEventListener("visibilitychange",()=>{
+      if(document.hidden && (stage==="starting"||stage==="running"||stage==="grace")) showReadyError("画面が非表示になったため測定を中断しました。");
     });
     showScreen("menu");
   </script>

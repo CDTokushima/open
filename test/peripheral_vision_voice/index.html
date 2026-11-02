@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <title>周辺視野テスト v1.8.5 (2026-11-02)</title>
+  <title>周辺視野テスト v1.8.6 (2026-11-02)</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
     * { box-sizing: border-box; }
@@ -72,7 +72,7 @@
         <button type="button" data-condition="red">(4) 赤</button>
         <button type="button" data-condition="blue">(5) 青</button>
       </div>
-      <p class="buildLabel">Version: v1.8.5 / 2026-11-02</p>
+      <p class="buildLabel">Version: v1.8.6 / 2026-11-02</p>
     </div>
   </main>
 
@@ -100,7 +100,7 @@
   <section id="doneScreen" class="screen" hidden aria-label="結果">
     <div class="resultPanel">
       <h2>測定結果</h2>
-      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.5 / 2026-11-02</p>
+      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.6 / 2026-11-02</p>
       <div id="score" class="score" aria-live="polite"></div>
       <div id="counts" class="counts"></div>
       <div class="tableWrap"><table class="resultTable">
@@ -144,7 +144,7 @@
       blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
     };
     const symbols = ["up", "right", "down", "left", "circle"];
-    const APP_VERSION = "v1.8.5 / 2026-11-02";
+    const APP_VERSION = "v1.8.6 / 2026-11-02";
     const DISPLAY_MS = 1500;
     const GRACE_MS = 2000;
     const FINAL_WAIT_MS = 1200;
@@ -658,14 +658,37 @@
       // IMPORTANT: final transcripts alone are NOT sufficient. Interim words
       // that the ASR later removes must still be eligible for timing/scoring.
       const validated=new Set(alignWords(detectedCommands.map(detailKey),finalTokens).map(([i])=>i));
-      const timed=detectedCommands.map((c,i)=>({
+      let timed=detectedCommands.map((c,i)=>({
         ...c,ordinal:i+1,timingMethod:c.source+"の初出",
         retainedInFinal:validated.has(i)
       }));
-      const unknown=firstUnknownAnswer(timed);
-      if(unknown) timed.unshift({...unknown,ordinal:0});
+      // When the FINAL transcript unambiguously contains exactly one answer
+      // per stimulus, it is authoritative for answer COUNT and ORDER.
+      // An interim result may temporarily duplicate words during a rewrite
+      // (e.g. 南東 -> 南東東北 -> 南東北丸西).  Such duplicates MUST NOT shift rows.
+      // Recover each final word's earliest observable time by aligning every
+      // interim snapshot to the final word sequence; do not assign time by
+      // the receipt time of the final concatenated sentence.
+      const finalDetails=extractCommandDetails(getFinalWords().transcript);
+      const finalComplete=finalDetails.length===trials.length &&
+        finalDetails.every(d=>d.word && !d.ambiguous);
+      if(finalComplete){
+        const timedFinal=getTimedTokens(finalTokens);
+        timed=finalDetails.map((d,i)=>({
+          ...d,rawToken:d.raw,firstSeenAt:timedFinal[i].firstSeenAt,
+          ordinal:i+1,source:"暫定/確定（最終テキストと照合）",
+          timingMethod:timedFinal[i].timingMethod,retainedInFinal:true,
+          sameEventWords:1
+        }));
+        warn("確定した5回答を発話順に採点しています。暫定認識で生じた重複語は計上しません。認識時刻と発話時刻は異なります。");
+      }else{
+        const unknown=firstUnknownAnswer(timed);
+        if(unknown)timed.unshift({...unknown,ordinal:0});
+      }
       timeCalibration=deriveCalibration(timed);
-      const aligned=assignByTime(timed,timeCalibration.lagMs);
+      const aligned=finalComplete
+        ? {assignments:trials.map((_,i)=>i),dropped:[],cost:0}
+        : assignByTime(timed,timeCalibration.lagMs);
       const rows=trials.map((t,i)=>{
         const idx=aligned.assignments[i];
         const match=idx===null ? null : timed[idx];

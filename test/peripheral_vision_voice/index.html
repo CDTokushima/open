@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <title>周辺視野テスト v1.8.7 (2026-11-02)</title>
+  <title>周辺視野テスト v1.8.7-reset (2026-11-02)</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
     * { box-sizing: border-box; }
@@ -72,7 +72,7 @@
         <button type="button" data-condition="red">(4) 赤</button>
         <button type="button" data-condition="blue">(5) 青</button>
       </div>
-      <p class="buildLabel">Version: v1.8.7 / 2026-11-02</p>
+      <p class="buildLabel">Version: v1.8.7-reset / 2026-11-02</p>
     </div>
   </main>
 
@@ -103,7 +103,7 @@
   <section id="doneScreen" class="screen" hidden aria-label="結果">
     <div class="resultPanel">
       <h2>測定結果</h2>
-      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.7 / 2026-11-02</p>
+      <p class="buildLabel" style="margin:0 0 10px">Version: v1.8.7-reset / 2026-11-02</p>
       <div id="score" class="score" aria-live="polite"></div>
       <div id="counts" class="counts"></div>
       <div class="tableWrap"><table class="resultTable">
@@ -148,7 +148,7 @@
       blue:  { label: "(5) 青", shapeSet: "basic", color: "#0070c0" }
     };
     const symbols = ["up", "right", "down", "left", "circle"];
-    const APP_VERSION = "v1.8.7 / 2026-11-02";
+    const APP_VERSION = "v1.8.7-reset / 2026-11-02";
     const DISPLAY_MS = 1500;
     const GRACE_MS = 2000;
     // Wait for the recognizer's actual `end` before allowing another test.
@@ -185,6 +185,41 @@
     let currentMicAudioStarted = false, currentMicResultCount = 0, permissionCheckSerial = 0;
     let micStartFallbackTimer = null, recognizerServiceEnded = false;
     let runStartedAt = null, runWarnings = [];
+    // Managed resources: never keep an open permission-check stream between runs.
+    let micCheckStream = null;
+    let navigationStarted = false;
+    let navigationReleaseTimer = null;
+    const RELOAD_SETTLE_MS = 650;
+    const RELOAD_END_TIMEOUT_MS = 1800;
+    const RECOGNITION_EVENTS = ["onstart", "onaudiostart", "onaudioend", "onsoundstart",
+      "onsoundend", "onspeechstart", "onspeechend", "onresult", "onerror", "onend", "onnomatch"];
+    function stopPermissionCheckStream() {
+      const stream = micCheckStream;
+      micCheckStream = null;
+      if (!stream) return;
+      try { stream.getTracks().forEach(track => { try { track.stop(); } catch (_) {} }); } catch (_) {}
+    }
+    function clearReadyRefreshTimer() {
+      if (readyRefreshTimeout !== null) clearTimeout(readyRefreshTimeout);
+      readyRefreshTimeout = null;
+    }
+    function dropExperimentObjects() {
+      order = []; trials = []; resultSlots.clear(); resultSlots = new Map(); recognitionLog = [];
+      snapshots = []; speechStarts = []; finalizedRows = null; timeCalibration = null;
+      detectedCommands = []; transcriptSnapshots = [];
+      archivedFinalWords = []; archivedFinalTranscripts = []; sessionStartIndex = 0;
+      runWarnings = []; runStartedAt = null;
+      stoppingForFinish = false; recognitionActive = false; recognitionOpening = false;
+      recognitionClosing = false; recognizerServiceEnded = false;
+      currentMicAudioStarted = false; currentMicResultCount = 0;
+      microphoneFatal = false; restartCount = 0;
+    }
+    function removeRecognitionHandlers(r) {
+      if (!r) return;
+      for (const key of RECOGNITION_EVENTS) {
+        try { r[key] = null; } catch (_) {}
+      }
+    }
 
     function showScreen(name) { for (const [key, el] of Object.entries(screens)) el.hidden = key !== name; }
     function warn(text) { if (!runWarnings.includes(text)) runWarnings.push(text); }
@@ -205,8 +240,7 @@
       if (recognition !== r) return;
       clearShutdownWatchdogs();
       // No abort here! The service has already dispatched `end`.
-      for (const k of ["onstart","onaudiostart","onaudioend","onspeechstart",
-                       "onresult","onerror","onend"]) r[k] = null;
+      removeRecognitionHandlers(r);
       recognition = null;
       recognitionActive = recognitionOpening = recognitionClosing = false;
       recognizerServiceEnded = true;
@@ -444,23 +478,31 @@
       const n = ++permissionCheckSerial;
       micCheckButton.disabled = true;
       micCheckStatus.textContent = "マイクへの接続を確認しています…";
+      let stream = null;
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("getUserMedia非対応");
-        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        stream.getTracks().forEach(track => track.stop());
-        if (n === permissionCheckSerial && stage === "ready") {
-          micCheckStatus.textContent = "マイクのアクセス許可を確認しました。音声認識への入力は測定開始後に確認します。";
-          lastRecognizerEndedAt = performance.now();
-          refreshReadyMessage();
-        }
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        // A delayed permission result must never retain its stream if a
+        // reload/reset was requested while the permission dialog was open.
+        if (n !== permissionCheckSerial || navigationStarted || stage !== "ready") return;
+        micCheckStream = stream;
+        micCheckStatus.textContent = "マイクのアクセス許可を確認しました。音声認識への入力は測定開始後に確認します。";
+        lastRecognizerEndedAt = performance.now();
+        refreshReadyMessage();
       } catch(err) {
-        if (n === permissionCheckSerial && stage === "ready") {
+        if (n === permissionCheckSerial && stage === "ready" && !navigationStarted) {
           micCheckStatus.textContent = `マイク確認に失敗：${err.name||err.message||"不明"}。Safariのサイト設定とiPhoneのマイク権限を確認してください。`;
         }
-      } finally { micCheckButton.disabled = false; }
+      } finally {
+        if (stream) {
+          try { stream.getTracks().forEach(track => { try { track.stop(); } catch (_) {} }); } catch (_) {}
+        }
+        if (micCheckStream === stream) micCheckStream = null;
+        if (n === permissionCheckSerial && !navigationStarted) micCheckButton.disabled = false;
+      }
     }
     function startTest() {
-      if (stage !== "ready" || !selected || !SpeechRecognitionClass) return;
+      if (stage !== "ready" || !selected || !SpeechRecognitionClass || navigationStarted || micCheckButton.disabled) return;
       if (restartBlocked || recognition || recognitionClosing ||
           performance.now() - lastRecognizerEndedAt < RESTART_COOLDOWN_MS) {
         refreshReadyMessage(); return;
@@ -1003,26 +1045,87 @@
       const b=ev.target.closest("button[data-condition]");if(b)chooseCondition(b.dataset.condition);
     });
     screens.ready.addEventListener("click",startTest);
-    readyBackButton.addEventListener("click",ev=>{ev.stopPropagation();resetRun();selected=null;stage="menu";showScreen("menu");});
-    function reloadForRetry() {
-      // On iOS, a NEW document is safer than reusing the previous WebKit
-      // audio session, even after receiving `end`. Keep the same condition.
-      const url = new URL(window.location.href);
-      if(selected && conditions[selected])url.searchParams.set("retry",selected);
-      url.searchParams.set("voiceBuild","187");
-      url.searchParams.set("session",String(Date.now()));
-      window.location.assign(url.href);
-    }
-    document.getElementById("retryButton").addEventListener("click",()=>{
-      if(restartBlocked || /iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        reloadForRetry();return;
+    // Completely retire this document's JS-side microphone resources before
+    // loading a fresh document. This avoids reusing a SpeechRecognition instance
+    // and prevents a previous run's timers/callbacks from reaching the next run.
+    function navigateToFresh(url) { window.location.replace(url); }
+    function reloadForRetry(mode = selected) {
+      if (navigationStarted) return;
+      navigationStarted = true;
+      stage = "reloading";
+      showScreen("processing");
+      document.querySelector("#processingScreen h1").textContent = "音声認識を解放中…";
+      document.querySelector("#processingScreen .hint").textContent = "新しいページで再測定の準備をします。";
+      // Save only the display condition in the URL; all JS measurement state
+      // is discarded and a new document builds a fresh recognizer on the next tap.
+      const next = new URL(window.location.href);
+      if (mode && conditions[mode]) next.searchParams.set("retry", mode);
+      else next.searchParams.delete("retry");
+      next.searchParams.set("voiceBuild", "187-reset");
+      next.searchParams.set("fresh", Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8));
+      const nextUrl = next.href;
+
+      ++permissionCheckSerial;
+      clearTimers();
+      clearShutdownWatchdogs();
+      clearReadyRefreshTimer();
+      stopPermissionCheckStream();
+      const oldRecognizer = recognition;
+      recognition = null;
+      dropExperimentObjects();
+      let finished = false;
+      const finishRelease = () => {
+        if (finished) return;
+        finished = true;
+        if (navigationReleaseTimer !== null) clearTimeout(navigationReleaseTimer);
+        navigationReleaseTimer = null;
+        removeRecognitionHandlers(oldRecognizer);
+        // Give WebKit a short interval to release its audio service, then
+        // load a distinct URL (not a bfcache restore of the old document).
+        setTimeout(() => navigateToFresh(nextUrl), RELOAD_SETTLE_MS);
+      };
+      if (!oldRecognizer) {
+        finishRelease();
+        return;
       }
-      chooseCondition(selected);
+      removeRecognitionHandlers(oldRecognizer);
+      // `abort` is only used for still-active / hung sessions. A normally
+      // finished run has already set recognition=null via its `end` callback.
+      try { oldRecognizer.onend = finishRelease; } catch (_) {}
+      navigationReleaseTimer = setTimeout(finishRelease, RELOAD_END_TIMEOUT_MS);
+      try { oldRecognizer.abort(); } catch (_) { finishRelease(); }
+    }
+    // Free audio resources even when the tab is closed or the user navigates
+    // elsewhere. These are our JS references; the browser owns WebKit internals.
+    window.addEventListener("pagehide", () => {
+      ++permissionCheckSerial;
+      clearTimers();
+      clearShutdownWatchdogs();
+      clearReadyRefreshTimer();
+      if (navigationReleaseTimer !== null) clearTimeout(navigationReleaseTimer);
+      navigationReleaseTimer = null;
+      stopPermissionCheckStream();
+      const oldRecognizer = recognition;
+      recognition = null;
+      removeRecognitionHandlers(oldRecognizer);
+      if (oldRecognizer) { try { oldRecognizer.abort(); } catch (_) {} }
+      dropExperimentObjects();
     });
-    micCheckButton.addEventListener("click",checkMicrophone);
-    readyReloadButton.addEventListener("click",ev=>{ev.stopPropagation();reloadForRetry();});
-    document.getElementById("doneReloadButton").addEventListener("click",reloadForRetry);
-    document.getElementById("backButton").addEventListener("click",()=>{resetRun();selected=null;stage="menu";showScreen("menu");});
+    // Safari may restore a frozen page from its back/forward cache. Do not
+    // resume a discarded microphone session; load a genuinely fresh document.
+    window.addEventListener("pageshow", ev => {
+      if (!ev.persisted) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set("fresh", Date.now().toString(36) + "-restore");
+      navigateToFresh(url.href);
+    });
+    document.getElementById("retryButton").addEventListener("click", () => reloadForRetry(selected));
+    micCheckButton.addEventListener("click", checkMicrophone);
+    readyReloadButton.addEventListener("click", ev => { ev.stopPropagation(); reloadForRetry(selected); });
+    document.getElementById("doneReloadButton").addEventListener("click", () => reloadForRetry(selected));
+    document.getElementById("backButton").addEventListener("click", () => reloadForRetry(null));
+    // Also reset the entire document when going back from an interrupted run.
+    readyBackButton.addEventListener("click", ev => { ev.stopPropagation(); reloadForRetry(null); });
     document.getElementById("csvButton").addEventListener("click",downloadCsv);
     document.getElementById("logButton").addEventListener("click",downloadLog);
     document.addEventListener("visibilitychange",()=>{

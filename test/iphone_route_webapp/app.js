@@ -12,8 +12,8 @@ const REROUTE_COOLDOWN_MS = 15000;
 
 // 目的地から20m以内でゴール判定
 const GOAL_THRESHOLD_METERS = 20;
-const MOVE_SPEED_MPS = 1.2;   // 4.3km/h以上なら走行扱い
-const STOP_SPEED_MPS = 0.6;   // 2.2km/h以下が継続したら停止
+const MOVE_SPEED_MPS = 0.2;   // 0.71km/h 4.3km/h以上なら走行扱い
+const STOP_SPEED_MPS = 0.6;   // 0.36km/h 2.2km/h以下が継続したら停止
 const STOP_CONFIRM_MS = 3000;
 const LOCATION_STALE_MS = 12000;
 

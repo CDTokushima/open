@@ -323,3 +323,29 @@ main {
     font-size: 14px;
   }
 }
+
+/* 周辺視野用：画面全体の白地に巨大な赤い矢印。端末は縦向きで使用 */
+.compass-row { margin: 0 12px 8px; }
+.compass-row button { display: block; width: 100%; min-height: 44px; border: 1px solid #d6d6dc;
+  border-radius: 11px; background: #fff; color: #1d1d1f; font-size: 14px; font-weight: 700; }
+.compass-row button:disabled { opacity: 0.7; }
+.arrow-overlay { position: fixed; inset: 0; z-index: 9000; background: #fff;
+  display: none; align-items: center; justify-content: center; flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden; }
+.arrow-overlay.show { display: flex; }
+.arrow-body { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center;
+  justify-content: center; position: relative; }
+.nav-arrow { width: min(95vw, 74dvh, 540px); height: min(95vw, 74dvh, 540px);
+  display: block; transform: rotate(0deg); transform-origin: 50% 50%;
+  transition: none; }
+.nav-arrow path { fill: #e60012; stroke: #a0000c; stroke-width: 2.2; stroke-linejoin: round; }
+.arrow-foot { flex: none; margin: 0 12px 14px; min-height: 24px; text-align: center;
+  font-size: 12px; font-weight: 600; color: #555; line-height: 1.4; }
+.arrow-waiting { position: absolute; bottom: 3%; font-size: 16px; font-weight: 700;
+  color: #424242; text-align: center; background: rgba(255,255,255,.9); padding: 5px 12px; }
+@media (prefers-reduced-motion: reduce) { .nav-arrow { transition: none; } }
+
+/* HTML の hidden 属性を、SVG に指定した display:block より優先 */
+#arrowSymbol[hidden], #arrowWaiting[hidden], #compassButton[hidden] { display: none !important; }

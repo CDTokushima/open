@@ -12,6 +12,10 @@ const REROUTE_COOLDOWN_MS = 15000;
 
 // 目的地から20m以内でゴール判定
 const GOAL_THRESHOLD_METERS = 20;
+const MOVE_SPEED_MPS = 1.2;   // 4.3km/h以上なら走行扱い
+const STOP_SPEED_MPS = 0.6;   // 2.2km/h以下が継続したら停止
+const STOP_CONFIRM_MS = 3000;
+const LOCATION_STALE_MS = 12000;
 
 const map = L.map("map", {
   zoomControl: true
@@ -42,6 +46,22 @@ let lastRerouteAt = 0;
 
 let goalReached = false;
 let audioContext = null;
+let wakeLock = null;
+let isMoving = false;
+let stopCandidateAt = null;
+let lastLocationReceivedAt = 0;
+let previousFix = null;
+let currentSpeed = null;
+let courseHeading = null;
+let courseAt = 0;
+let compassHeading = null;
+let compassAt = 0;
+let compassListenerStarted = false;
+let compassPermission = '未許可';
+let routeTurns = [];
+let currentArrow = null;
+let routeRevision = 0;
+let activeSearchController = null;
 
 const locationButton = document.getElementById("locationButton");
 const routeButton = document.getElementById("routeButton");
@@ -58,6 +78,180 @@ const durationText = document.getElementById("duration");
 
 const goalOverlay = document.getElementById("goalOverlay");
 const confettiLayer = document.getElementById("confettiLayer");
+const arrowOverlay = document.getElementById("arrowOverlay");
+const arrowSymbol = document.getElementById("arrowSymbol");
+const arrowWaiting = document.getElementById("arrowWaiting");
+const arrowFoot = document.getElementById("arrowFoot");
+const motionState = document.getElementById("motionState");
+const speedText = document.getElementById("speedText");
+const headingState = document.getElementById("headingState");
+const compassButton = document.getElementById("compassButton");
+const ARROW_ANGLES = { up: 0, right: 90, down: 180, left: 270 };
+
+
+// iOS Safari は方位センサー取得にタップ操作による許可が必要な場合がある。
+function orientationChanged(event) {
+  let heading = null;
+  if (Number.isFinite(event.webkitCompassHeading)) {
+    // iPhone上端が向く方角（磁北基準）
+    if (!Number.isFinite(event.webkitCompassAccuracy) ||
+        event.webkitCompassAccuracy <= 50 || event.webkitCompassAccuracy < 0) {
+      heading = event.webkitCompassHeading;
+    }
+  } else if (event.absolute === true && Number.isFinite(event.alpha)) {
+    // 端末が絶対方位を通知するブラウザのみ
+    heading = (360 - event.alpha) % 360;
+  }
+  if (heading !== null) {
+    compassHeading = NaviCore.norm360(heading);
+    compassAt = Date.now();
+    headingState.textContent = '端末の方位センサー';
+    compassButton.hidden = true;
+    renderArrow();
+  }
+}
+
+function attachCompassListener() {
+  if (compassListenerStarted) return;
+  compassListenerStarted = true;
+  window.addEventListener('deviceorientation', orientationChanged);
+  window.addEventListener('deviceorientationabsolute', orientationChanged);
+}
+
+async function enableCompass() {
+  if (typeof DeviceOrientationEvent === 'undefined') {
+    compassPermission = '利用不可';
+    headingState.textContent = '未対応（GPS方位を代用）';
+    return;
+  }
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // requestPermission() は必ずユーザーのタップの中から呼び出す
+      const permission = await DeviceOrientationEvent.requestPermission();
+      if (permission !== 'granted') {
+        compassPermission = '拒否';
+        headingState.textContent = '未許可（GPS方位を代用）';
+        return;
+      }
+    }
+    compassPermission = '許可済み';
+    headingState.textContent = '方位センサーの更新待ち';
+    attachCompassListener();
+  } catch (error) {
+    console.warn('Compass permission error:', error);
+    compassPermission = '利用不可';
+    headingState.textContent = '利用不可（GPS方位を代用）';
+  }
+}
+
+function updateMotion(position) {
+  const now = Date.now();
+  const coords = position.coords;
+  const fixTime = Number.isFinite(position.timestamp) ? position.timestamp : now;
+  const fix = { lat: coords.latitude, lon: coords.longitude,
+    accuracy: Math.max(0, Number(coords.accuracy) || 100), time: fixTime };
+  const estimated = NaviCore.estimateMotion(previousFix, fix);
+  const measured = Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed : null;
+  // speed が未提供でも、1秒ごとの小移動を累積して速度を求められるようにする。
+  // GPSのブレで動いたと誤認しないよう、基準点を毎回更新しない。
+  if (!previousFix || (fixTime > previousFix.time &&
+      (measured !== null || estimated.heading !== null || fixTime - previousFix.time > 10000))) {
+    previousFix = fix;
+  }
+  currentSpeed = measured !== null ? measured : estimated.speed;
+  if (Number.isFinite(coords.heading) && coords.heading >= 0 &&
+      Number.isFinite(currentSpeed) && currentSpeed > 0.8) {
+    courseHeading = NaviCore.norm360(coords.heading);
+    courseAt = now;
+  } else if (measured === null && Number.isFinite(estimated.heading)) {
+    courseHeading = estimated.heading;
+    courseAt = now;
+  }
+  lastLocationReceivedAt = now;
+
+  // GPSの精度が悪い場合は、誤った走行検出を避ける。
+  if (fix.accuracy <= 40 && currentSpeed !== null) {
+    if (!isMoving && currentSpeed >= MOVE_SPEED_MPS) {
+      isMoving = true;
+      stopCandidateAt = null;
+    } else if (isMoving) {
+      if (currentSpeed <= STOP_SPEED_MPS) {
+        if (stopCandidateAt === null) stopCandidateAt = now;
+        if (now - stopCandidateAt >= STOP_CONFIRM_MS) isMoving = false;
+      } else {
+        stopCandidateAt = null;
+      }
+    }
+  }
+  motionState.textContent = isMoving ? '移動中' : '停止中';
+  speedText.textContent = currentSpeed === null ? '計測中' : `${(currentSpeed*3.6).toFixed(1)} km/h`;
+}
+
+function getReferenceHeading() {
+  const now = Date.now();
+  if (Number.isFinite(compassHeading) && now - compassAt < 10000) {
+    return { heading: compassHeading, source: 'compass' };
+  }
+  if (Number.isFinite(courseHeading) && now - courseAt < 10000) {
+    return { heading: courseHeading, source: 'gps' };
+  }
+  return null;
+}
+
+function renderArrow() {
+  const shouldShow = isMoving && currentPosition && destinationPosition &&
+    currentRouteCoordinates.length >= 2 && !goalReached &&
+    document.visibilityState === 'visible';
+  arrowOverlay.classList.toggle('show', Boolean(shouldShow));
+  arrowOverlay.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+  if (!shouldShow) { currentArrow = null; return; }
+
+  const target = NaviCore.routeBearing(
+    currentPosition.lat, currentPosition.lon,
+    currentRouteCoordinates, routeTurns, currentSpeed || 0
+  );
+  const reference = getReferenceHeading();
+  if (!target || !reference) {
+    arrowSymbol.hidden = true;
+    arrowWaiting.hidden = false;
+    arrowFoot.textContent = '端末の方位またはGPS進行方位を取得中';
+    return;
+  }
+  arrowSymbol.hidden = false;
+  arrowWaiting.hidden = true;
+  const arrow = NaviCore.getArrow(target.bearing, reference.heading, currentArrow);
+  if (arrow !== currentArrow) {
+    currentArrow = arrow;
+    // 角度の累積なしに4方向を確定的に描画する
+    arrowSymbol.style.transform = `rotate(${ARROW_ANGLES[arrow]}deg)`;
+    arrowSymbol.setAttribute('aria-label', { up: '上', right: '右', down: '下', left: '左' }[arrow] + '方向');
+  }
+  arrowFoot.textContent = reference.source === 'compass'
+    ? 'iPhone上端の向きを基準に案内'
+    : 'GPSの進行方位を基準に案内（端末方位ではありません）';
+}
+
+// GPS更新が止まったときに、走行中の矢印を残しっぱなしにしない。
+setInterval(() => {
+  if (isMoving && lastLocationReceivedAt &&
+      Date.now() - lastLocationReceivedAt >= LOCATION_STALE_MS) {
+    isMoving = false;
+    stopCandidateAt = null;
+    motionState.textContent = '停止中（GPS更新待ち）';
+    renderArrow();
+  }
+}, 1000);
+
+compassButton.addEventListener('click', () => {
+  enableCompass();
+  requestWakeLock();
+});
+
+// 権限リクエストの不要なブラウザでは自動的に方位監視を開始する。
+if (typeof DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission !== 'function') {
+  attachCompassListener();
+}
 
 const currentPositionIcon = L.divIcon({
   className: "",
@@ -105,6 +299,7 @@ async function handleLocationUpdate(position) {
   const accuracy = position.coords.accuracy;
 
   currentPosition = { lat, lon };
+  updateMotion(position);
 
   if (!currentMarker) {
     currentMarker = L.marker([lat, lon], {
@@ -158,12 +353,15 @@ async function handleLocationUpdate(position) {
 
     if (distanceToGoal <= GOAL_THRESHOLD_METERS) {
       goalReached = true;
+      renderArrow();
       showGoalCelebration();
       setStatus(`ゴール！ 目的地まで約${Math.round(distanceToGoal)}mです。`);
       updateButtons();
       return;
     }
   }
+
+  renderArrow();
 
   // 30m以上ルートから外れた場合のみ再検索
   if (
@@ -193,7 +391,9 @@ async function handleLocationUpdate(position) {
     }
   }
 
-  if (destinationPosition) {
+  if (goalReached) {
+    setStatus("ゴール！目的地に到着しました。");
+  } else if (destinationPosition) {
     setStatus("現在地を継続更新中です。");
   } else {
     setStatus("現在地を継続更新中です。地図上で目的地をタップしてください。");
@@ -244,6 +444,8 @@ map.on("dragstart", () => {
 map.on("click", event => {
   const { lat, lng } = event.latlng;
 
+  routeRevision++;
+  if (activeSearchController) activeSearchController.abort();
   destinationPosition = {
     lat,
     lon: lng
@@ -273,6 +475,8 @@ map.on("click", event => {
   }
 
   currentRouteCoordinates = [];
+  routeTurns = [];
+  renderArrow();
 
   if (currentPosition) {
     setStatus("目的地を設定しました。「自転車ルート」を押してください。");
@@ -284,6 +488,9 @@ map.on("click", event => {
 });
 
 routeButton.addEventListener("click", async () => {
+  // タップ直後に許可ダイアログを起動する（await searchRouteより前）
+  if (compassPermission !== '許可済み') enableCompass();
+  requestWakeLock();
   await searchRoute(false);
 });
 
@@ -298,6 +505,9 @@ async function searchRoute(isAutomatic = false) {
   }
 
   rerouteInProgress = true;
+  const revisionAtStart = routeRevision;
+  const controller = new AbortController();
+  activeSearchController = controller;
 
   if (!isAutomatic) {
     setStatus("自転車ルートを検索しています...");
@@ -314,13 +524,14 @@ async function searchRoute(isAutomatic = false) {
     `?overview=full&geometries=geojson&steps=true`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
 
     const data = await response.json();
+    if (revisionAtStart !== routeRevision) return;
 
     if (!data.routes || data.routes.length === 0) {
       setStatus("自転車ルートが見つかりませんでした。");
@@ -335,6 +546,7 @@ async function searchRoute(isAutomatic = false) {
       );
 
     currentRouteCoordinates = coordinates;
+    routeTurns = NaviCore.extractTurns(route, coordinates);
 
     if (routeLine) {
       map.removeLayer(routeLine);
@@ -376,10 +588,12 @@ async function searchRoute(isAutomatic = false) {
         );
       }
 
-      setStatus("自転車ルートを表示しました。現在地を追従します。");
+      setStatus("自転車ルートを表示しました。移動すると矢印に切り替わります。");
     }
+    renderArrow();
 
   } catch (error) {
+    if (error.name === "AbortError") return;
     console.error(error);
 
     setStatus(
@@ -388,6 +602,7 @@ async function searchRoute(isAutomatic = false) {
         : "ルート検索に失敗しました。"
     );
   } finally {
+    if (activeSearchController === controller) activeSearchController = null;
     rerouteInProgress = false;
   }
 }
@@ -405,9 +620,13 @@ appleMapsButton.addEventListener("click", () => {
 });
 
 clearButton.addEventListener("click", () => {
+  routeRevision++;
+  if (activeSearchController) activeSearchController.abort();
   destinationPosition = null;
   currentRouteCoordinates = [];
+  routeTurns = [];
   goalReached = false;
+  renderArrow();
 
   hideGoalCelebration();
 
@@ -674,10 +893,54 @@ goalOverlay.addEventListener("click", () => {
   }
 });
 
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) {
+    console.warn("Screen Wake Lock API is not supported.");
+    return;
+  }
+
+  try {
+    if (wakeLock && !wakeLock.released) {
+      return;
+    }
+
+    wakeLock = await navigator.wakeLock.request("screen");
+
+    wakeLock.addEventListener("release", () => {
+      console.log("Screen Wake Lock released.");
+    });
+
+    console.log("Screen Wake Lock enabled.");
+  } catch (error) {
+    console.warn("Screen Wake Lock request failed:", error);
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    if (wakeLock && !wakeLock.released) {
+      await wakeLock.release();
+    }
+  } catch (error) {
+    console.warn("Screen Wake Lock release failed:", error);
+  } finally {
+    wakeLock = null;
+  }
+}
+
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible") {
+    await requestWakeLock();
+  }
+  renderArrow();
+});
+
 window.addEventListener("load", () => {
   setTimeout(() => {
     map.invalidateSize(true);
     startLocationTracking();
+    requestWakeLock();
   }, 100);
 });
 
@@ -689,11 +952,20 @@ window.addEventListener("orientationchange", () => {
   setTimeout(() => map.invalidateSize(true), 250);
 });
 
+window.addEventListener("pageshow", event => {
+  if (event.persisted) {
+    startLocationTracking();
+    requestWakeLock();
+  }
+});
+
 window.addEventListener("pagehide", () => {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
+
+  releaseWakeLock();
 });
 
 updateButtons();

@@ -1,7 +1,7 @@
 {
-  "name": "かんたん自転車ナビ",
-  "short_name": "自転車ナビ",
-  "start_url": "./",
+  "name": "自転車ナビ 周辺視野矢印",
+  "short_name": "チャリナビ",
+  "start_url": "./?v=2.0",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

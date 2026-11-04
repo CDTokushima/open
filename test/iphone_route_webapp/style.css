@@ -340,7 +340,7 @@ main {
 .nav-arrow { width: min(95vw, 74dvh, 540px); height: min(95vw, 74dvh, 540px);
   display: block; transform: rotate(0deg); transform-origin: 50% 50%;
   transition: none; }
-.nav-arrow path { fill: #e60012; stroke: #a0000c; stroke-width: 2.2; stroke-linejoin: round; }
+.nav-arrow path { fill: #0057B8; stroke: #003B7A; stroke-width: 2.2; stroke-linejoin: round; }
 .arrow-foot { flex: none; margin: 0 12px 14px; min-height: 24px; text-align: center;
   font-size: 12px; font-weight: 600; color: #555; line-height: 1.4; }
 .arrow-waiting { position: absolute; bottom: 3%; font-size: 16px; font-weight: 700;

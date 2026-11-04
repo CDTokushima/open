@@ -327,7 +327,7 @@ main {
 /* 周辺視野用：画面全体の白地に巨大な赤い矢印。端末は縦向きで使用 */
 .compass-row { margin: 0 12px 8px; }
 .compass-row button { display: block; width: 100%; min-height: 44px; border: 1px solid #d6d6dc;
-  border-radius: 11px; background: #fff; color: #1d1d1f; font-size: 14px; font-weight: 700; }
+  border-radius: 11px; background: #fff; color: #0057B8; font-size: 14px; font-weight: 700; }
 .compass-row button:disabled { opacity: 0.7; }
 .arrow-overlay { position: fixed; inset: 0; z-index: 9000; background: #fff;
   display: none; align-items: center; justify-content: center; flex-direction: column;

@@ -28,7 +28,7 @@
 | 高校生・高専生科学技術チャレンジ（JSEC） | 9月 | 高校生 | [Webサイト](https://manabu.asahi.com/jsec/) |
 | 高校生ビジネスプラン・グランプリ | 9月 | 高校生 | [Webサイト](https://www.jfc.go.jp/n/grandprix/) |
 | 日本学生科学賞 | 9月 | 中学生・高校生 | [Webサイト](https://event.yomiuri.co.jp/jssa/) |
-| U-16プログラミングコンテスト | 10月 | 小学生・中学生 | [Webサイト](https://www.anan-nct.ac.jp/event/45782/) |
+| U-16プログラミングコンテスト | 10月 | 小学生・中学生 | [Webサイト](https://www.ajitep.org/contest-info/) |
 | AITeCデータサイエンスコンテスト | 10月 | 中学生・高校生・大学生・大学院生 | [Webサイト](https://ds-education.com/data-science-event/1498/) |
 | 全国情報教育コンテスト（全情コン） | 11月 | 中学生〜高校生 | [Webサイト](https://zenjyocon.jp/) |
 | 科学の甲子園	| 11月 | 高校生 |	[Webサイト](https://koushien.jst.go.jp/koushien/) |
